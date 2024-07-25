@@ -8,10 +8,6 @@ This is my first attempt to program a chess engine using bitboards and an easy i
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Usage](#usage)
-- [Resolving Git Conflicts](#resolving-git-conflicts)
-- [Ignoring Folders with `.gitignore`](#ignoring-folders-with-gitignore)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Project Description
 

@@ -1,3 +1,9 @@
+# Mac files
+.DS_Store
+
+# Debug folder from clion
+cmake-build-debug
+
 # Prerequisites
 *.d
 

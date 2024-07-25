@@ -1,5 +1,4 @@
 # Chess Engine
-
 This is my first attempt to program a chess engine using bitboards and an easy implementation of the negamax AI algorithm.
 
 ## Table of Contents

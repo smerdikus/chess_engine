@@ -5,10 +5,8 @@
 #include "CBoard.h"
 
 
-CBoard::CBoard(sf::Texture textures[12]) : wPawns(0), wKnights(0), wBishops(0), wRooks(0), wQueens(0), wKing(0),
-                                           bPawns(0), bKnights(0), bBishops(0), bRooks(0), bQueens(0), bKing(0),
-                                           wCastling(0), bCastling(0) {
-// Place pieces on initial positions
+CBoard::CBoard(sf::Texture textures[12]) {
+  // Place pieces on initial positions
   wPawns = 0xFF00ULL;
   wKnights = 0x42ULL;
   wBishops = 0x24ULL;
@@ -20,100 +18,74 @@ CBoard::CBoard(sf::Texture textures[12]) : wPawns(0), wKnights(0), wBishops(0), 
   bKnights = 0x4200000000000000ULL;
   bBishops = 0x2400000000000000ULL;
   bRooks = 0x8100000000000000ULL;
-  bQueens = 0x8ULL << 56;
-  bKing = 0x10ULL << 56;
-
+  bQueens = 0x800000000000000ULL;
+  bKing = 0x1000000000000000ULL;
 
   wCastling = 0x44ULL;
   bCastling = 0x4400000000000000ULL;
-
   enPassant = 0;
 
   onTurn = 1;
 
-
+  // Assign and scale the textures
   for (int i = 0; i < 12; ++i) {
-    this->textures[i] = textures[i];
-    sprites[i].setTexture(textures[i]);
+    m_sprites[i].setTexture(textures[i]);
 
-    // Get the current texture size
     sf::Vector2u textureSize = textures[i].getSize();
 
     // Calculate the scale factor to fit within tileSize
-    float scaleFactor = static_cast<float>(TILE) / std::max(textureSize.x, textureSize.y);
+    float scaleFactor = static_cast<float>(TILE) / static_cast<float>(std::max(textureSize.x, textureSize.y));
 
-    sprites[i].setScale(scaleFactor, scaleFactor);
+    m_sprites[i].setScale(scaleFactor, scaleFactor);
   }
+
+
+  lightSquareColor = sf::Color(240, 248, 255);  // Alice blue
+  darkSquareColor = sf::Color(70, 130, 180);    // Steel blue
+  borderColor = sf::Color(60, 100, 150);        // Deep blue
+  highlightSrcColor = sf::Color(0, 191, 255);   // Deep sky blue
+  highlightDstColor = sf::Color(30, 144, 255);  // Dodger blue
+
+
+  m_rectangle = sf::RectangleShape(sf::Vector2f(TILE - BORDER * 2, TILE - BORDER * 2));
+  m_rectangle.setOutlineColor(borderColor);
+  m_rectangle.setOutlineThickness(BORDER);
 }
 
 
 void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom) {
-  sf::Color tileCols[2];
-  tileCols[0] = sf::Color(200, 100, 50, 255);
-  tileCols[1] = sf::Color(220, 210, 180, 255);
-
-  sf::RectangleShape rectangle(sf::Vector2f(TILE - BORDER, TILE - BORDER));
-  rectangle.setOutlineColor(sf::Color::Black);
-  rectangle.setOutlineThickness(BORDER / 2);
-
-
-
-
-
-  // Drawing the board
-
-  // We have brown screen, now we need o print white squares
-  for (int i = 0; i < 8; ++i) {
-    for (int j = 0; j < 8; ++j) {
-      if ((i + j) % 2 == 0) {
-        rectangle.setPosition(i * TILE + BORDER / 2, j * TILE + BORDER / 2);
-        rectangle.setFillColor(tileCols[1]);
-        window.draw(rectangle);
-      } else {
-        rectangle.setPosition(i * TILE + BORDER / 2, j * TILE + BORDER / 2);
-        rectangle.setFillColor(tileCols[0]);
-        window.draw(rectangle);
-      }
+  // Drawing the board and squares
+  for (int y = 0; y < 8; ++y) {
+    for (int x = 0; x < 8; ++x) {
+      m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+      m_rectangle.setFillColor((x + y) % 2 == 0 ? lightSquareColor : darkSquareColor);
+      window.draw(m_rectangle);
     }
   }
 
-
-  Bitboard posMask = moveFrom;
-
-  // Drawing a selected square
-  int pos = 0;
-
-  if (posMask != 0) {
-    while (!(posMask & 1)) {
-      posMask >>= 1;
-      ++pos;
-    }
-  } else {
-    pos = -1;
-  }
-
-  if (pos != -1) {
+  // Drawing the selected square, if any
+  if (moveFrom) {
+    int pos = __builtin_ctzll(moveFrom);
     int x = pos % 8;
     int y = 7 - (pos / 8);
-    rectangle.setPosition(x * TILE + BORDER / 2, y * TILE + BORDER / 2);
-    rectangle.setFillColor(sf::Color(70, 90, 170, 255));
-    window.draw(rectangle);
+
+    m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+    m_rectangle.setFillColor(highlightSrcColor);
+    window.draw(m_rectangle);
   }
 
-
+  // Highlighting possible moves
   Bitboard possibleMoves = legalMoves(moveFrom);
-  // Highlighting the possible moves
-  for (int i = 0; i < 8; ++i) {
-    for (int j = 0; j < 8; ++j) {
-      if ((static_cast<Bitboard>(1) << (i + j * 8)) & possibleMoves) {
-        rectangle.setPosition(i * TILE + BORDER / 2, (7 - j) * TILE + BORDER / 2);
-        rectangle.setFillColor(sf::Color(80, 200, 100, 200));
-        window.draw(rectangle);
-      }
+  for (int square = 0; square < 64; ++square) {
+    if (possibleMoves & (1ULL << square)) {
+      int x = square % 8;
+      int y = 7 - (square / 8);
+
+      m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+      m_rectangle.setFillColor(highlightDstColor); // Highlight color for possible moves
+      window.draw(m_rectangle);
     }
   }
-
-
 
   // Function to position pieces based on bitboard
   auto posFromBitboard = [&](sf::Sprite &sprite, Bitboard bitboard) {
@@ -121,7 +93,9 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom) {
       if (bitboard & (1ULL << square)) {
         int rank = square / 8;
         int file = square % 8;
-        sprite.setPosition(file * TILE, (7 - rank) * TILE);
+
+        // Here I need to reverse the positions -> 7 - rank
+        sprite.setPosition(static_cast<float>(file) * TILE, static_cast<float>(7 - rank) * TILE);
 
         window.draw(sprite);
       }
@@ -129,29 +103,21 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom) {
   };
 
   // Draw the pieces
-  posFromBitboard(sprites[0], wPawns); // White pieces
-  posFromBitboard(sprites[1], wKing);
-  posFromBitboard(sprites[2], wKnights);
-  posFromBitboard(sprites[3], wBishops);
-  posFromBitboard(sprites[4], wQueens);
-  posFromBitboard(sprites[5], wRooks);
+  posFromBitboard(m_sprites[0], wPawns);
+  posFromBitboard(m_sprites[1], wKing);
+  posFromBitboard(m_sprites[2], wKnights);
+  posFromBitboard(m_sprites[3], wBishops);
+  posFromBitboard(m_sprites[4], wQueens);
+  posFromBitboard(m_sprites[5], wRooks);
 
-  posFromBitboard(sprites[6], bPawns); // Black pieces
-  posFromBitboard(sprites[7], bKing);
-  posFromBitboard(sprites[8], bKnights);
-  posFromBitboard(sprites[9], bBishops);
-  posFromBitboard(sprites[10], bQueens);
-  posFromBitboard(sprites[11], bRooks);
+  posFromBitboard(m_sprites[6], bPawns);
+  posFromBitboard(m_sprites[7], bKing);
+  posFromBitboard(m_sprites[8], bKnights);
+  posFromBitboard(m_sprites[9], bBishops);
+  posFromBitboard(m_sprites[10], bQueens);
+  posFromBitboard(m_sprites[11], bRooks);
 }
 
-/*
- ************************************************************
- *                                                          *
- *                          Logic                           *
- *                          Logic                           *
- *                                                          *
- ************************************************************
- */
 
 Bitboard CBoard::white() const {
   return wPawns | wKnights | wBishops | wRooks | wQueens | wKing;
@@ -169,27 +135,13 @@ bool CBoard::blackToMove() const {
   return onTurn == -1;
 }
 
-bool CBoard::whiteWon() {
-  return true;
-  //return !(isCheckmate() && whiteToMove());
-}
-
 
 Bitboard CBoard::empty() const {
   return ~white() & ~black();
 }
 
 int CBoard::pieceCount() const {
-  Bitboard board = white() | black();
-  int counter = 0;
-
-  while (board) {
-    if (board & 1)
-      ++counter;
-    board >>= 1;
-  }
-
-  return counter;
+  return popcount(white() | black());
 }
 
 void CBoard::movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo) {
@@ -197,60 +149,33 @@ void CBoard::movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo) {
   pieces |= moveTo;     // Set the destination bit
 }
 
-
 void CBoard::removeCapturedBlack(Bitboard piece, Bitboard &removedFrom, char &pieceType) {
-  if (bPawns & piece) {
-    bPawns &= ~piece;
-    pieceType = 'P';
-    removedFrom = piece;
-  } else if (bKnights & piece) {
-    bKnights &= ~piece;
-    pieceType = 'N';
-    removedFrom = piece;
-  } else if (bBishops & piece) {
-    bBishops &= ~piece;
-    pieceType = 'B';
-    removedFrom = piece;
-  } else if (bRooks & piece) {
-    bRooks &= ~piece;
-    pieceType = 'R';
-    removedFrom = piece;
-  } else if (bQueens & piece) {
-    bQueens &= ~piece;
-    pieceType = 'Q';
-    removedFrom = piece;
-  } else if (bKing & piece) {
-    bKing &= ~piece;
-    pieceType = 'K';
-    removedFrom = piece;
+  // Array of bitboards for black pieces and corresponding piece types
+  Bitboard *blackPieces[] = {&bPawns, &bKnights, &bBishops, &bRooks, &bQueens, &bKing};
+  char blackPieceTypes[] = {'P', 'N', 'B', 'R', 'Q', 'K'};
+
+  for (int i = 0; i < 6; ++i) {
+    if (*blackPieces[i] & piece) {
+      *blackPieces[i] &= ~piece;
+      pieceType = blackPieceTypes[i];
+      removedFrom = piece;
+      break;
+    }
   }
 }
 
 void CBoard::removeCapturedWhite(Bitboard piece, Bitboard &removedFrom, char &pieceType) {
-  if (wPawns & piece) {
-    wPawns &= ~piece;
-    pieceType = 'P';
-    removedFrom = piece;
-  } else if (wKnights & piece) {
-    wKnights &= ~piece;
-    pieceType = 'N';
-    removedFrom = piece;
-  } else if (wBishops & piece) {
-    wBishops &= ~piece;
-    pieceType = 'B';
-    removedFrom = piece;
-  } else if (wRooks & piece) {
-    wRooks &= ~piece;
-    pieceType = 'R';
-    removedFrom = piece;
-  } else if (wQueens & piece) {
-    wQueens &= ~piece;
-    pieceType = 'Q';
-    removedFrom = piece;
-  } else if (wKing & piece) {
-    wKing &= ~piece;
-    pieceType = 'K';
-    removedFrom = piece;
+  // Array of bitboards for white pieces and corresponding piece types
+  Bitboard *whitePieces[] = {&wPawns, &wKnights, &wBishops, &wRooks, &wQueens, &wKing};
+  char whitePieceTypes[] = {'P', 'N', 'B', 'R', 'Q', 'K'};
+
+  for (int i = 0; i < 6; ++i) {
+    if (*whitePieces[i] & piece) {
+      *whitePieces[i] &= ~piece;
+      pieceType = whitePieceTypes[i];
+      removedFrom = piece;
+      break;
+    }
   }
 }
 
@@ -282,8 +207,7 @@ Bitboard CBoard::bDoublePush(Bitboard pawns) const {
 
 
 Bitboard CBoard::wPawnMoves(Bitboard pos) const {
-  return wSinglePush(pos) |
-         wDoublePush(pos) |
+  return wSinglePush(pos) | wDoublePush(pos) |
          ((wPawnWestAttacks(pos) |
            wPawnEastAttacks(pos)) &
           (black() | enPassant));
@@ -291,8 +215,7 @@ Bitboard CBoard::wPawnMoves(Bitboard pos) const {
 
 
 Bitboard CBoard::bPawnMoves(Bitboard pos) const {
-  return bSinglePush(pos) |
-         bDoublePush(pos) |
+  return bSinglePush(pos) | bDoublePush(pos) |
          ((bPawnWestAttacks(pos) |
            bPawnEastAttacks(pos)) &
           (white() | enPassant));
@@ -311,25 +234,17 @@ Bitboard CBoard::bPawnMoves(Bitboard pos) const {
 
 
 Bitboard CBoard::wKnightMoves(Bitboard pos) const {
-  return (noNoEa(pos) & enemyOrEmpty<true>(*this)) |
-         (noEaEa(pos) & enemyOrEmpty<true>(*this)) |
-         (soEaEa(pos) & enemyOrEmpty<true>(*this)) |
-         (soSoEa(pos) & enemyOrEmpty<true>(*this)) |
-         (soSoWe(pos) & enemyOrEmpty<true>(*this)) |
-         (soWeWe(pos) & enemyOrEmpty<true>(*this)) |
-         (noWeWe(pos) & enemyOrEmpty<true>(*this)) |
-         (noNoWe(pos) & enemyOrEmpty<true>(*this));
+  return (noNoEa(pos) & enemyOrEmpty<true>()) | (noEaEa(pos) & enemyOrEmpty<true>()) |
+         (soEaEa(pos) & enemyOrEmpty<true>()) | (soSoEa(pos) & enemyOrEmpty<true>()) |
+         (soSoWe(pos) & enemyOrEmpty<true>()) | (soWeWe(pos) & enemyOrEmpty<true>()) |
+         (noWeWe(pos) & enemyOrEmpty<true>()) | (noNoWe(pos) & enemyOrEmpty<true>());
 }
 
 Bitboard CBoard::bKnightMoves(Bitboard pos) const {
-  return (noNoEa(pos) & enemyOrEmpty<false>(*this)) |
-         (noEaEa(pos) & enemyOrEmpty<false>(*this)) |
-         (soEaEa(pos) & enemyOrEmpty<false>(*this)) |
-         (soSoEa(pos) & enemyOrEmpty<false>(*this)) |
-         (soSoWe(pos) & enemyOrEmpty<false>(*this)) |
-         (soWeWe(pos) & enemyOrEmpty<false>(*this)) |
-         (noWeWe(pos) & enemyOrEmpty<false>(*this)) |
-         (noNoWe(pos) & enemyOrEmpty<false>(*this));
+  return (noNoEa(pos) & enemyOrEmpty<false>()) | (noEaEa(pos) & enemyOrEmpty<false>()) |
+         (soEaEa(pos) & enemyOrEmpty<false>()) | (soSoEa(pos) & enemyOrEmpty<false>()) |
+         (soSoWe(pos) & enemyOrEmpty<false>()) | (soWeWe(pos) & enemyOrEmpty<false>()) |
+         (noWeWe(pos) & enemyOrEmpty<false>()) | (noNoWe(pos) & enemyOrEmpty<false>());
 }
 
 
@@ -342,106 +257,40 @@ Bitboard CBoard::bKnightMoves(Bitboard pos) const {
  ************************************************************
  */
 
+Bitboard CBoard::sliderMoves(Bitboard pos, Bitboard (*directionFunc)(Bitboard), Bitboard enemies, Bitboard empty) {
+  Bitboard res = 0;
+  Bitboard currentPos = directionFunc(pos);
+
+  while (currentPos & (enemies | empty)) {
+    res |= currentPos;
+    if (currentPos & enemies)
+      break;
+
+    currentPos = directionFunc(currentPos);
+  }
+
+  return res;
+}
 
 
-Bitboard CBoard::wBishopMoves(Bitboard pos) const {
+Bitboard CBoard::bishopMoves(Bitboard pos, Bitboard enemies, Bitboard empty) {
   Bitboard res = 0;
 
-  Bitboard currentPos = noWe(pos);
+  res |= sliderMoves(pos, noWe, enemies, empty);
+  res |= sliderMoves(pos, noEa, enemies, empty);
+  res |= sliderMoves(pos, soWe, enemies, empty);
+  res |= sliderMoves(pos, soEa, enemies, empty);
 
+  return res & ~pos;  // Clear the start position
+}
 
-  // North-West direction
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = noWe(currentPos);
-  }
-
-  currentPos = noEa(pos);
-
-  // North-East direction
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = noEa(currentPos);
-  }
-
-  currentPos = soWe(pos);
-
-  // South-West direction
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = soWe(currentPos);
-  }
-
-  currentPos = soEa(pos);
-
-  // South-East direction
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = soEa(currentPos);
-  }
-
-
-  // Here we need to clear the start position
-  return res & ~pos;
+// Wrapper functions for white and black bishops
+Bitboard CBoard::wBishopMoves(Bitboard pos) const {
+  return bishopMoves(pos, black(), empty());
 }
 
 Bitboard CBoard::bBishopMoves(Bitboard pos) const {
-  Bitboard res = 0;
-
-  Bitboard currentPos = noWe(pos);
-
-  // North-West direction
-  while (currentPos & enemyOrEmpty<false>(*this)) {
-    res |= currentPos;
-    if (currentPos & white())
-      break;
-    currentPos = noWe(currentPos);
-  }
-
-
-  // North-East direction
-  currentPos = noEa(pos);
-
-  while (currentPos & enemyOrEmpty<false>(*this)) {
-    res |= currentPos;
-    if (currentPos & white())
-      break;
-    currentPos = noEa(currentPos);
-  }
-
-
-  // South-West direction
-  currentPos = soWe(pos);
-
-  while (currentPos & enemyOrEmpty<false>(*this)) {
-    res |= currentPos;
-    if (currentPos & white())
-      break;
-    currentPos = soWe(currentPos);
-  }
-
-
-  // South-East direction
-  currentPos = soEa(pos);
-
-  while (currentPos & enemyOrEmpty<false>(*this)) {
-    res |= currentPos;
-    if (currentPos & white())
-      break;
-    currentPos = soEa(currentPos);
-  }
-
-
-  // Here we need to clear the start position
-  return res & ~pos;
+  return bishopMoves(pos, white(), empty());
 }
 
 
@@ -454,109 +303,27 @@ Bitboard CBoard::bBishopMoves(Bitboard pos) const {
  ************************************************************
  */
 
-Bitboard CBoard::wRookMoves(Bitboard pos) const {
+Bitboard CBoard::rookMoves(Bitboard pos, Bitboard enemies, Bitboard empty) {
   Bitboard res = 0;
 
-  // North direction
-  Bitboard currentPos = nortOne(pos);
 
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = nortOne(currentPos);
-  }
+  // Apply the lambda for each straight direction
+  res |= sliderMoves(pos, nortOne, enemies, empty);
+  res |= sliderMoves(pos, eastOne, enemies, empty);
+  res |= sliderMoves(pos, soutOne, enemies, empty);
+  res |= sliderMoves(pos, westOne, enemies, empty);
 
+  return res & ~pos;  // Clear the start position
+}
 
-  // East direction
-  currentPos = eastOne(pos);
-
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = eastOne(currentPos);
-  }
-
-
-  // South direction
-  currentPos = soutOne(pos);
-
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = soutOne(currentPos);
-  }
-
-
-  // West direction
-  currentPos = westOne(pos);
-
-  while (currentPos & enemyOrEmpty<true>(*this)) {
-    res |= currentPos;
-    if (currentPos & black())
-      break;
-    currentPos = westOne(currentPos);
-  }
-
-
-  // Here we need to clear the start position
-  return res & ~pos;
+// Wrapper functions for white and black rooks
+Bitboard CBoard::wRookMoves(Bitboard pos) const {
+  return rookMoves(pos, black(), empty());
 }
 
 Bitboard CBoard::bRookMoves(Bitboard pos) const {
-  Bitboard res = 0;
-  Bitboard newPos = nortOne(pos);
-
-
-  // North direction
-  while (newPos & enemyOrEmpty<false>(*this)) {
-    res |= newPos;
-    if (newPos & white())
-      break;
-    newPos = nortOne(newPos);
-  }
-
-
-  // East direction
-  newPos = eastOne(pos);
-
-  while (newPos & enemyOrEmpty<false>(*this)) {
-    res |= newPos;
-    if (newPos & white())
-      break;
-    newPos = eastOne(newPos);
-  }
-
-
-  // South direction
-  newPos = soutOne(pos);
-
-
-  while (newPos & enemyOrEmpty<false>(*this)) {
-    res |= newPos;
-    if (newPos & white())
-      break;
-    newPos = soutOne(newPos);
-  }
-
-
-  // West direction
-  newPos = westOne(pos);
-
-  while (newPos & enemyOrEmpty<false>(*this)) {
-    res |= newPos;
-    if (newPos & white())
-      break;
-    newPos = westOne(newPos);
-  }
-
-
-  // Here we need to clear the start position
-  return res & ~pos;
+  return rookMoves(pos, white(), empty());
 }
-
 
 /*
  ************************************************************
@@ -581,21 +348,22 @@ Bitboard CBoard::bQueenMoves(Bitboard pos) const { return bBishopMoves(pos) | bR
  ************************************************************
  */
 
+Bitboard CBoard::oneAround(Bitboard pos) {
+  return nortOne(pos) | soutOne(pos) | eastOne(pos) | westOne(pos) |
+         noWe(pos) | noEa(pos) | soWe(pos) | soEa(pos);
+}
+
 Bitboard CBoard::wKingSafe(Bitboard pos) const {
   Bitboard blackAttacks = 0;
 
   // Pawn must be just attacking
-  blackAttacks |= bPawnEastAttacks(black() & bPawns);
-  blackAttacks |= bPawnWestAttacks(black() & bPawns);
-  blackAttacks |= bKnightMoves(black() & bKnights);
-  blackAttacks |= bBishopMoves(black() & bBishops);
-  blackAttacks |= bRookMoves(black() & bRooks);
-  blackAttacks |= bQueenMoves(black() & bQueens);
-
-  // I need to add the black king movement
-  blackAttacks |= bKing >> 7 | bKing >> 8 | bKing >> 9 |
-                  bKing << 7 | bKing << 8 | bKing << 9 |
-                  bKing << 1 | bKing >> 1;
+  blackAttacks |= bPawnEastAttacks(bPawns);
+  blackAttacks |= bPawnWestAttacks(bPawns);
+  blackAttacks |= bKnightMoves(bKnights);
+  blackAttacks |= bBishopMoves(bBishops);
+  blackAttacks |= bRookMoves(bRooks);
+  blackAttacks |= bQueenMoves(bQueens);
+  blackAttacks |= oneAround(bKing);
 
   return pos & ~blackAttacks;
 }
@@ -604,17 +372,13 @@ Bitboard CBoard::bKingSafe(Bitboard pos) const {
   Bitboard whiteAttacks = 0;
 
   // Pawns must be just attacking
-  whiteAttacks |= wPawnEastAttacks(white() & wPawns);
-  whiteAttacks |= wPawnWestAttacks(white() & wPawns);
-  whiteAttacks |= wKnightMoves(white() & wKnights);
-  whiteAttacks |= wBishopMoves(white() & wBishops);
-  whiteAttacks |= wRookMoves(white() & wRooks);
-  whiteAttacks |= wQueenMoves(white() & wQueens);
-
-  // I need to add the white king movement
-  whiteAttacks |= wKing >> 7 | wKing >> 8 | wKing >> 9 |
-                  wKing << 7 | wKing << 8 | wKing << 9 |
-                  wKing << 1 | wKing >> 1;
+  whiteAttacks |= wPawnEastAttacks(wPawns);
+  whiteAttacks |= wPawnWestAttacks(wPawns);
+  whiteAttacks |= wKnightMoves(wKnights);
+  whiteAttacks |= wBishopMoves(wBishops);
+  whiteAttacks |= wRookMoves(wRooks);
+  whiteAttacks |= wQueenMoves(wQueens);
+  whiteAttacks |= oneAround(wKing);
 
   return pos & ~whiteAttacks;
 }
@@ -622,22 +386,16 @@ Bitboard CBoard::bKingSafe(Bitboard pos) const {
 Bitboard CBoard::wKingMoves(Bitboard pos) const {
   Bitboard castling = 0;
 
+  // If the king is on starting position -> might be castling if not zero
+  if (wKingSafe(pos) && wKingSafe(pos >> 1 & empty()) && wKingSafe(pos >> 2 & empty()) &&
+      empty() & pos >> 3)
+    castling = wCastling & pos >> 2;
 
-  if (pos & 0x10ULL) {
+  if (wKingSafe(pos) && wKingSafe(pos << 1 & empty()) && wKingSafe(pos << 2 & empty()))
+    castling |= wCastling & pos << 2;
 
-    // If the king is on starting position -> might be castling if not zero
-    if (wKingSafe(pos) && wKingSafe(pos >> 1 & empty()) && wKingSafe(pos >> 2 & empty()) &&
-        empty() & pos >> 3)
-      castling = wCastling & pos >> 2;
 
-    if (wKingSafe(pos) && wKingSafe(pos << 1 & empty()) && wKingSafe(pos << 2 & empty()))
-      castling |= wCastling & pos << 2;
-  }
-
-  Bitboard res = (nortOne(pos) | soutOne(pos) |
-                  eastOne(pos) | westOne(pos) |
-                  noWe(pos) | noEa(pos) |
-                  soWe(pos) | soEa(pos)) & enemyOrEmpty<true>(*this);
+  Bitboard res = oneAround(pos) & enemyOrEmpty<true>();
 
   return res | castling;
 }
@@ -645,21 +403,16 @@ Bitboard CBoard::wKingMoves(Bitboard pos) const {
 Bitboard CBoard::bKingMoves(Bitboard pos) const {
   Bitboard castling = 0;
 
-  if (pos & 0x10ULL << 56) {
-    // If the king is on starting position -> might be castling if not zero
-    if (bKingSafe(pos) && bKingSafe(pos >> 1 & empty()) && bKingSafe(pos >> 2 & empty()) &&
-        empty() & pos >> 3)
-      castling = bCastling & pos >> 2;
+  // If the king is on starting position -> might be castling if not zero
+  if (bKingSafe(pos) && bKingSafe(pos >> 1 & empty()) && bKingSafe(pos >> 2 & empty()) &&
+      empty() & pos >> 3)
+    castling = bCastling & pos >> 2;
 
-    if (bKingSafe(pos) && bKingSafe(pos << 1 & empty()) && bKingSafe(pos << 2 & empty()))
-      castling |= bCastling & pos << 2;
-  }
+  if (bKingSafe(pos) && bKingSafe(pos << 1 & empty()) && bKingSafe(pos << 2 & empty()))
+    castling |= bCastling & pos << 2;
 
 
-  Bitboard res = (nortOne(pos) | soutOne(pos) |
-                  eastOne(pos) | westOne(pos) |
-                  noWe(pos) | noEa(pos) |
-                  soWe(pos) | soEa(pos)) & enemyOrEmpty<false>(*this);
+  Bitboard res = oneAround(pos) & enemyOrEmpty<false>();
 
   return res | castling;
 }
@@ -701,7 +454,9 @@ Bitboard CBoard::legalMoves(Bitboard pos) {
   Bitboard legalMoves = 0;
 
   while (pos) {
-    Bitboard moveFrom = pos & ~pos;
+    // Separate the lowest one from the position
+    Bitboard moveFrom = pos & -pos;
+    // And delete it from the pos
     pos &= pos - 1;
 
     Bitboard possibleMoves = pseudoLegalMoves(moveFrom);
@@ -711,7 +466,7 @@ Bitboard CBoard::legalMoves(Bitboard pos) {
       possibleMoves &= possibleMoves - 1;
 
       // If the move from the moveFrom to moveTo position is not legal, then we need to remove it from result
-      if (!isMoveLegal(moveFrom, moveTo))
+      if (isMoveLegal(moveFrom, moveTo))
         legalMoves |= moveTo;
     }
   }
@@ -730,6 +485,25 @@ bool CBoard::isMoveLegal(Bitboard from, Bitboard to) {
 }
 
 
+std::vector<std::pair<Bitboard, Bitboard>> CBoard::generateMoves(Bitboard moveFrom) {
+  std::vector<std::pair<Bitboard, Bitboard>> moves;
+  Bitboard possibleMoves = legalMoves(moveFrom);
+
+  while (possibleMoves) {
+    // Isolate the least significant set bit
+    Bitboard moveTo = possibleMoves & -possibleMoves;
+
+    // Add the move from moveFrom to moveTo
+    moves.emplace_back(moveFrom, moveTo);
+
+    // Remove the least significant set bit from possibleMoves
+    possibleMoves &= possibleMoves - 1;
+  }
+
+  return moves;
+}
+
+
 bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
   Bitboard pseudoMoves = pseudoLegalMoves(moveFrom);
 
@@ -738,7 +512,7 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
 
 
   // Must store the info before the move, to revert the move and have the same properties
-  MoveInfo moveInfo = {moveFrom, moveTo, 0, enPassant, onTurn == 1 ? wCastling : bCastling, onTurn, false};
+  MoveInfo moveInfo = {moveFrom, moveTo, 0, enPassant, onTurn == 1 ? wCastling : bCastling, onTurn, false, 0};
 
   bool wasEnPassant = false;
 
@@ -765,6 +539,7 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
 
   } else if (wRooks & moveFrom) {
     movePiece(wRooks, moveFrom, moveTo);
+
     // Disable castling on the side the rook moved;
     wCastling &= eastTwo(wRooks) | westOne(wRooks);
 
@@ -782,7 +557,8 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
       movePiece(wRooks, rookFrom, rookTo);
     }
 
-    wCastling = 0; // If king moves, we need to reset castling
+    // If king moves, we need to disable castling
+    wCastling = 0;
 
 
   } else if (bPawns & moveFrom) { // Black pieces
@@ -807,6 +583,7 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
 
   } else if (bRooks & moveFrom) {
     movePiece(bRooks, moveFrom, moveTo);
+
     // Disable castling on the side the rook moved;
     bCastling &= eastTwo(bRooks) | westOne(bRooks);
 
@@ -822,7 +599,8 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
       movePiece(bRooks, rookFrom, rookTo);
     }
 
-    bCastling = 0; // If king moves, we need to reset castling
+    // If king moves, we need to disable castling
+    bCastling = 0;
 
   }
 
@@ -841,17 +619,9 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
   return true;
 }
 
-void CBoard::MoveInfo::print() const {
-  std::cout << "\n\nmove info: " << std::endl;
-  std::cout << "previousOnTurn: " << previousOnTurn << std::endl;
-  std::cout << "capturedPiece: " << capturedPiece << std::endl;
-  std::cout << "capturedPieceType: " << capturedPieceType << std::endl;
-  std::cout << "moveFrom: " << moveFrom << std::endl;
-  std::cout << "moveTo: " << moveTo << std::endl;
-  std::cout << "wasEnPassant: " << wasEnPassant << std::endl;
-  std::cout << "previousEnPassant: " << previousEnPassant << std::endl;
-  std::cout << "previousCastlingRights: " << previousCastlingRights << std::endl;
-  std::cout << "\n\n";
+
+bool CBoard::canMakeMove(Bitboard moveFrom, Bitboard moveTo) {
+  return moveTo & legalMoves(moveFrom);
 }
 
 
@@ -940,7 +710,6 @@ Bitboard CBoard::onMovePositions() const {
   return onTurn == 1 ? white() : black();
 }
 
-
 /*
  ************************************************************
  *                                                          *
@@ -950,48 +719,14 @@ Bitboard CBoard::onMovePositions() const {
  ************************************************************
  */
 
-std::vector<std::pair<Bitboard, Bitboard>> CBoard::generateMoves(Bitboard moveFrom) {
-  std::vector<std::pair<Bitboard, Bitboard>> moves;
-  Bitboard possibleMoves = legalMoves(moveFrom);
-
-  Bitboard moveTo = 1ULL;
-
-  while (moveTo) {
-    if (possibleMoves & moveTo)
-      moves.emplace_back(moveFrom, moveTo);
-
-    moveTo <<= 1;
-  }
-
-  return moves;
-}
-
 CBoard::GameStatus CBoard::isCheckmate() {
-  if (whiteToMove()) {
-    if (!wKingSafe(wKing)) {
-      if (!legalMoves(white()))
-        return GameStatus::BlackWon;
-      else
-        return GameStatus::InProgress;
-    } else {
-      if (!legalMoves(white()))
-        return GameStatus::Draw;
-      else
-        return GameStatus::InProgress;
-    }
-  } else {
-    if (!bKingSafe(bKing)) {
-      if (!legalMoves(black()))
-        return GameStatus::WhiteWon;
-      else
-        return GameStatus::InProgress;
-    } else {
-      if (!legalMoves(black()))
-        return GameStatus::Draw;
-      else
-        return GameStatus::InProgress;
-    }
-  }
+  bool isWhiteTurn = whiteToMove();
+  bool kingInCheck = isWhiteTurn ? !wKingSafe(wKing) : !bKingSafe(bKing);
+  bool hasLegalMoves = isWhiteTurn ? legalMoves(white()) : legalMoves(black());
+
+  if (kingInCheck)
+    return hasLegalMoves ? GameStatus::InProgress : (isWhiteTurn ? GameStatus::BlackWon : GameStatus::WhiteWon);
+  return hasLegalMoves ? GameStatus::InProgress : GameStatus::Draw;
 }
 
 
@@ -1033,8 +768,8 @@ int CBoard::evaluate() {
   score -= evaluatePawnStructure(bPawns, wPawns);
 
   // Mobility
-  score += evaluateMobility(1);
-  score -= evaluateMobility(-1);
+  score += evaluateMobility(wPawns);
+  score -= evaluateMobility(bPawns);
 
   return score;
 }
@@ -1057,16 +792,13 @@ int CBoard::evaluatePawnStructure(Bitboard pawns, Bitboard opponentPawns) {
   return score;
 }
 
-int CBoard::evaluateMobility(int side) {
+int CBoard::evaluateMobility(Bitboard onMove) {
   int mobilityScore = 0;
 
-  Bitboard pieces = (side == 1) ? white() : black();
 
   Bitboard moveFrom = 1ULL;
   while (moveFrom) {
-    if (moveFrom & pieces) {
-      mobilityScore += popcount(legalMoves(moveFrom));
-    }
+    mobilityScore += popcount(legalMoves(moveFrom & onMove));
     moveFrom <<= 1;
   }
 
@@ -1083,9 +815,9 @@ int CBoard::pieceSquareValue(Bitboard pieces, const int table[64]) {
 
   int index = 0;
   while (moveFrom) {
-    if (moveFrom & pieces) {
+    if (moveFrom & pieces)
       score += table[index];
-    }
+
     moveFrom <<= 1;
     index++;
   }
@@ -1099,19 +831,19 @@ int CBoard::negamax(int depth) {
 
 
   int maxEval = INT_MIN;
-  Bitboard moveFrom = 1ULL;
+  Bitboard positions = onMovePositions();
 
-  while (moveFrom) {
-    if (moveFrom & onMovePositions()) {
-      auto moves = generateMoves(moveFrom);
-      for (const auto &move: moves) {
-        makeMove(move.first, move.second);
-        int eval = -negamax(depth - 1);
-        unmakeMove();
-        maxEval = std::max(maxEval, eval);
-      }
+  while (positions) {
+    Bitboard moveFrom = positions & -positions;
+    positions &= positions - 1;
+
+    auto moves = generateMoves(moveFrom);
+    for (const auto &move: moves) {
+      makeMove(move.first, move.second);
+      int eval = -negamax(depth - 1);
+      unmakeMove();
+      maxEval = std::max(maxEval, eval);
     }
-    moveFrom <<= 1;
   }
 
   return maxEval;

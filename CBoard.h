@@ -10,14 +10,13 @@
 #include <iostream>
 #include <bitset>
 #include <stack>
-#include <cmath>
 #include <cstdint>
 
 
 #define TILE    70
 #define WIDTH   (8 * TILE) // 8 because We have 8 rectangles here
 #define HEIGHT  WIDTH
-#define BORDER  2
+#define BORDER  1
 
 typedef uint64_t Bitboard;
 
@@ -39,8 +38,6 @@ private:
     int previousOnTurn;
     bool wasEnPassant;
     char capturedPieceType; // Store type of captured piece ('P', 'N', 'B', 'R', 'Q', 'K')
-
-    void print() const;
   };
 
 
@@ -53,7 +50,6 @@ private:
  ************************************************************
  */
 
-  // Bitboard constants for ranks
   static constexpr uint64_t RANK_1 = 0x00000000000000FF;
   static constexpr uint64_t RANK_2 = 0x000000000000FF00;
   static constexpr uint64_t RANK_3 = 0x0000000000FF0000;
@@ -63,7 +59,6 @@ private:
   static constexpr uint64_t RANK_7 = 0x00FF000000000000;
   static constexpr uint64_t RANK_8 = 0xFF00000000000000;
 
-  // Bitboard constants for files
   static constexpr uint64_t FILE_A = 0x0101010101010101;
   static constexpr uint64_t FILE_B = 0x0202020202020202;
   static constexpr uint64_t FILE_C = 0x0404040404040404;
@@ -73,7 +68,6 @@ private:
   static constexpr uint64_t FILE_G = 0x4040404040404040;
   static constexpr uint64_t FILE_H = 0x8080808080808080;
 
-  // Bitboard constants for files
   static constexpr uint64_t NOT_FILE_A = ~0x0101010101010101;
   static constexpr uint64_t NOT_FILE_B = ~0x0202020202020202;
   static constexpr uint64_t NOT_FILE_C = ~0x0404040404040404;
@@ -193,11 +187,26 @@ private:
 
   std::stack<MoveInfo> m_moveList;
 
+  // Colors for the palette
+  sf::Color lightSquareColor;
+  sf::Color darkSquareColor;
+  sf::Color borderColor;
+  sf::Color highlightSrcColor;
+  sf::Color highlightDstColor;
+
   // Create an array to store sprites
-  mutable sf::Sprite sprites[12];     // Just for drawing -> mutable
-  mutable sf::Texture textures[12];   // Just for drawing -> mutable
+  mutable sf::Sprite m_sprites[12];     // Just for drawing -> mutable
+  mutable sf::RectangleShape m_rectangle;
 
 
+/*
+ ************************************************************
+ *                                                          *
+ *                    Bitwise Logic                         *
+ *                    Bitwise Logic                         *
+ *                                                          *
+ ************************************************************
+ */
 
   void removeCapturedWhite(Bitboard pos, Bitboard &removedFrom, char &pieceType);
 
@@ -300,6 +309,10 @@ private:
  ************************************************************
  */
 
+  static Bitboard sliderMoves(Bitboard pos, Bitboard (*directionFunc)(Bitboard), Bitboard enemies, Bitboard empty);
+
+  static Bitboard bishopMoves(Bitboard pos, Bitboard enemies, Bitboard empty);
+
   Bitboard wBishopMoves(Bitboard pos) const;
 
   Bitboard bBishopMoves(Bitboard pos) const;
@@ -312,6 +325,8 @@ private:
  *                                                          *
  ************************************************************
  */
+
+  static Bitboard rookMoves(Bitboard pos, Bitboard enemies, Bitboard empty);
 
   Bitboard wRookMoves(Bitboard pos) const;
 
@@ -339,23 +354,32 @@ private:
  ************************************************************
  */
 
-  Bitboard wKingSafe(Bitboard king) const;
+  inline static Bitboard oneAround(Bitboard pos);
 
-  Bitboard bKingSafe(Bitboard king) const;
+  Bitboard wKingSafe(Bitboard pos) const;
+
+  Bitboard bKingSafe(Bitboard pos) const;
 
   Bitboard wKingMoves(Bitboard pos) const;
 
   Bitboard bKingMoves(Bitboard pos) const;
 
+  /*
+ ************************************************************
+ *                                                          *
+ *                   End of piece methods                   *
+ *                   End of piece methods                   *
+ *                                                          *
+ ************************************************************
+ */
 
   static void movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo);
 
-
   template<bool isWhite>
-  static constexpr Bitboard enemyOrEmpty(const CBoard &brd) {
+  constexpr Bitboard enemyOrEmpty() const {
     if constexpr (isWhite)
-      return ~brd.white();
-    return ~brd.black();
+      return ~white();
+    return ~black();
   }
 
 
@@ -378,6 +402,8 @@ public:
 
   bool makeMove(Bitboard moveFrom, Bitboard moveTo);
 
+  bool canMakeMove(Bitboard moveFrom, Bitboard moveTo);
+
   bool unmakeMove();
 
   Bitboard pseudoLegalMoves(Bitboard pos) const;
@@ -392,20 +418,17 @@ public:
 
   GameStatus isCheckmate();
 
-  bool whiteWon();
-
   int evaluate();
 
   static int pieceSquareValue(Bitboard pieces, const int table[64]);
 
   static int evaluatePawnStructure(Bitboard pawns, Bitboard opponentPawns);
 
-  int evaluateMobility(int side);
+  int evaluateMobility(Bitboard onMove);
 
   static int popcount(Bitboard bb);
 
   int negamax(int depth);
 };
-
 
 #endif //SFML_CHESS_CBOARD_H

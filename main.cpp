@@ -1,9 +1,5 @@
 // Link to fonts            "/System/Library/Fonts/Supplemental/Arial.ttf"
 #include <SFML/Graphics.hpp>
-#include <iostream>
-#include <bitset>
-
-
 #include "CBoard.h"
 
 
@@ -47,22 +43,20 @@ int main() {
     int mouseY = sf::Mouse::getPosition(window).y;
 
 
-    sf::Event event;
+    sf::Event event = sf::Event();
     while (window.pollEvent(event)) {
       switch (event.type) {
         case sf::Event::Closed:
           window.close();
           break;
         case sf::Event::MouseButtonPressed:
-          if (event.mouseButton.button == sf::Mouse::Right) {
+          if (event.mouseButton.button == sf::Mouse::Right)
             brd.unmakeMove();
-          }
+
 
           if (event.mouseButton.button == sf::Mouse::Left) {
-
             // Here we need to get the index of the piece we clicked
             int index = (mouseX / TILE) + ((HEIGHT - mouseY) / TILE) * 8;
-
             Bitboard currentPos = 1ULL << index;
 
             if (moveFrom == 0) {
@@ -76,35 +70,33 @@ int main() {
 
 
               // If the move is in legal moves, provide it, if not just continue
-              if (moveTo & brd.legalMoves(moveFrom) || !brd.makeMove(moveFrom, moveTo)) {
-                if (currentPos & brd.onMovePositions())
+              if (brd.canMakeMove(moveFrom, moveTo)) {
+                if (currentPos & brd.onMovePositions()) {
                   moveFrom = currentPos;
-                break;
+                  break;
+                }
+
+                brd.makeMove(moveFrom, moveTo);
               }
 
 
               moveFrom = 0;
             }
           }
-
           break;
-
 
         default:
           break;
-      } // End of switch (event.type)
-    } // End of while (window.pollEvent(event))
+      }
+    }
 
-
-
-    // Drawing routine
 
     window.clear(sf::Color::Black);
 
     brd.draw(window, moveFrom);
 
     window.display();
-  } // End of mainLoop for window
+  }
 
   return 0;
 }

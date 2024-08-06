@@ -24,29 +24,16 @@ This chess engine uses bitboards for efficient board representation and implemen
 
 1. Clone the repository:
 
-   ```sh
-   git clone https://github.com/yourusername/chess-engine.git
-   cd chess-engine
-   ```
+```sh
+	git clone https://github.com/yourusername/chess-engine.git
+	cd chess-engine
+```
 
-2. Create a build directory and navigate into it:
+2. Use the install script:
 
-   ```sh
-   mkdir build
-   cd build
-   ```
-
-3. Generate the build files using CMake:
-
-   ```sh
-   cmake ..
-   ```
-
-4. Build the project:
-
-   ```sh
-   make
-   ```
+```sh
+	./install.sh
+```
 
 ## Usage
 

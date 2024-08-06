@@ -22,7 +22,7 @@ This chess engine uses bitboards for efficient board representation and implemen
 
 ## Setup
 
-### if you have SFML framework installed use steps bellow, otherwise install SFML using some of these installers:
+#### If you have SFML framework installed use steps bellow, otherwise install SFML using some of these installers:
 
 - brew:
 
@@ -39,6 +39,8 @@ This chess engine uses bitboards for efficient board representation and implemen
 
 - Or you can use some other package managers or clone SFML from Source: https://github.com/SFML/SFML.git
 
+
+#### When you have SFML installed you can follow these steps:
 
 1. Clone the repository:
 

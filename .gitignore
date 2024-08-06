@@ -4,6 +4,9 @@
 # Debug folder from clion
 cmake-build-debug/
 
+# Ignoring Executables
+build/
+
 # Prerequisites
 *.d
 

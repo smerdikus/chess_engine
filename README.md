@@ -18,6 +18,7 @@ This chess engine uses bitboards for efficient board representation and implemen
 - C++ Compiler (e.g., GCC, Clang, MSVC)
 - CMake
 - Git
+- SFML library
 
 ## Setup
 

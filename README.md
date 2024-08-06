@@ -26,39 +26,39 @@ This chess engine uses bitboards for efficient board representation and implemen
 
 brew:
 
-```sh
+	```sh
 	brew install sfml
-```
+	```
 
 apt:
 
-```sh
+	```sh
 	sudo apt-get update
 	sudo apt-get install libsfml-dev
-```
+	```
 
 Or you can use some other package managers or clone SFML from Source: https://github.com/SFML/SFML.git
 
 
 1. Clone the repository:
 
-```sh
+	```sh
 	git clone https://github.com/yourusername/chess-engine.git
 	cd chess-engine
-```
+	```
 
 2. Use the install script:
 
-```sh
+	```sh
 	./install.sh
-```
+	```
 
 ## Usage
 
 To run the chess engine executable:
 
-```sh
+	```sh
 	./chess_engine
-```
+	```
 
 This will start the chess engine and prompt you to enter moves.

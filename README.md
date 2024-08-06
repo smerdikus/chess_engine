@@ -24,20 +24,20 @@ This chess engine uses bitboards for efficient board representation and implemen
 
 ### if you have SFML framework installed use steps bellow, otherwise install SFML using some of these installers:
 
-brew:
+- brew:
 
    ```sh
    brew install sfml
    ```
 
-apt:
+- apt:
 
    ```sh
    sudo apt-get update
    sudo apt-get install libsfml-dev
    ```
 
-Or you can use some other package managers or clone SFML from Source: https://github.com/SFML/SFML.git
+- Or you can use some other package managers or clone SFML from Source: https://github.com/SFML/SFML.git
 
 
 1. Clone the repository:

@@ -149,16 +149,16 @@ void CBoard::movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo) {
   pieces |= moveTo;     // Set the destination bit
 }
 
-void CBoard::removeCapturedBlack(Bitboard piece, Bitboard &removedFrom, char &pieceType) {
-  // Array of bitboards for black pieces and corresponding piece types
+void CBoard::removeCapturedBlack(Bitboard moveTo, Bitboard &removedFrom, char &pieceType) {
+  // Array of bitboards for black pieces and corresponding moveTo types
   Bitboard *blackPieces[] = {&bPawns, &bKnights, &bBishops, &bRooks, &bQueens, &bKing};
   char blackPieceTypes[] = {'P', 'N', 'B', 'R', 'Q', 'K'};
 
   for (int i = 0; i < 6; ++i) {
-    if (*blackPieces[i] & piece) {
-      *blackPieces[i] &= ~piece;
+    if (*blackPieces[i] & moveTo) {
+      *blackPieces[i] &= ~moveTo;
       pieceType = blackPieceTypes[i];
-      removedFrom = piece;
+      removedFrom = moveTo;
       break;
     }
   }
@@ -565,7 +565,9 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
     // En-passant
     movePiece(bPawns, moveFrom, moveTo);
 
+    // If the destination matches en-passant move then handle it
     if (moveTo & enPassant) {
+      // Removing the piece behind the piece
       removeCapturedBlack(moveTo << 8, moveInfo.capturedPiece, moveInfo.capturedPieceType);
     } else if (moveTo & moveFrom >> 16) {
       wasEnPassant = true;
@@ -612,6 +614,7 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
 
   if (!wasEnPassant)
     enPassant = 0;
+
 
   onTurn *= -1;
   m_moveList.push(moveInfo);
@@ -670,28 +673,28 @@ bool CBoard::unmakeMove() {
   if (lastMove.capturedPiece) {
     switch (lastMove.capturedPieceType) {
       case 'P':
-        movePiece(opponentPawns, 0, lastMove.moveTo);
+        movePiece(opponentPawns, 0, lastMove.capturedPiece);
         break;
       case 'N':
-        movePiece(opponentKnights, 0, lastMove.moveTo);
+        movePiece(opponentKnights, 0, lastMove.capturedPiece);
         break;
       case 'B':
-        movePiece(opponentBishops, 0, lastMove.moveTo);
+        movePiece(opponentBishops, 0, lastMove.capturedPiece);
         break;
       case 'R':
-        movePiece(opponentRooks, 0, lastMove.moveTo);
+        movePiece(opponentRooks, 0, lastMove.capturedPiece);
         break;
       case 'Q':
-        movePiece(opponentQueens, 0, lastMove.moveTo);
+        movePiece(opponentQueens, 0, lastMove.capturedPiece);
         break;
       case 'K':
-        movePiece(opponentKing, 0, lastMove.moveTo);
+        movePiece(opponentKing, 0, lastMove.capturedPiece);
         break;
     }
   }
 
   // Handle en passant
-  if ((pawns & lastMove.moveFrom) && (lastMove.moveTo == enPassant)) {
+  if (lastMove.wasEnPassant) {
     Bitboard enPassantCapturedPawn = isWhiteMove ? (lastMove.moveTo >> 8) : (lastMove.moveTo << 8);
     movePiece(opponentPawns, 0, enPassantCapturedPawn);
   }

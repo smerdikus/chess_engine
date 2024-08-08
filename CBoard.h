@@ -210,7 +210,7 @@ private:
 
   void removeCapturedWhite(Bitboard pos, Bitboard &removedFrom, char &pieceType);
 
-  void removeCapturedBlack(Bitboard pos, Bitboard &removedFrom, char &pieceType);
+  void removeCapturedBlack(Bitboard moveTo, Bitboard &removedFrom, char &pieceType);
 
 
   inline static Bitboard nortOne(Bitboard pos) { return pos << 8; }

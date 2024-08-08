@@ -1,11 +1,14 @@
 # Mac files
 .DS_Store
 
+# Clion files
+.idea
+
 # Debug folder from clion
-cmake-build-debug/
+cmake-build-debug
 
 # Ignoring Executables
-build/
+build
 
 # Prerequisites
 *.d

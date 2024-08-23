@@ -49,6 +49,7 @@ int main() {
         case sf::Event::Closed:
           window.close();
           break;
+
         case sf::Event::MouseButtonPressed:
           if (event.mouseButton.button == sf::Mouse::Right)
             brd.unmakeMove();
@@ -88,6 +89,11 @@ int main() {
         default:
           break;
       }
+    }
+
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) {
+      brd.makeAIMove(1);
     }
 
 

@@ -54,6 +54,8 @@ CBoard::CBoard(sf::Texture textures[12]) {
 
 
 void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom) {
+  std::cout << (whiteToMove() ? "white on move\n" : "black on move\n");
+
   // Drawing the board and squares
   for (int y = 0; y < 8; ++y) {
     for (int x = 0; x < 8; ++x) {
@@ -500,7 +502,14 @@ std::vector<std::pair<Bitboard, Bitboard>> CBoard::generateMoves(Bitboard moveFr
     possibleMoves &= possibleMoves - 1;
   }
 
+  std::cout << "we have " << moves.size() << "moves\n";
+
   return moves;
+}
+
+
+bool CBoard::canMakeMove(Bitboard moveFrom, Bitboard moveTo) {
+  return moveTo & legalMoves(moveFrom);
 }
 
 
@@ -511,22 +520,30 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
     return false;
 
 
-  // Must store the info before the move, to revert the move and have the same properties
+  // Must store the info before the move
   MoveInfo moveInfo = {moveFrom, moveTo, 0, enPassant, onTurn == 1 ? wCastling : bCastling, onTurn, false, 0};
 
-  bool wasEnPassant = false;
+  bool enPassantSet = false;
 
   if (wPawns & moveFrom) {
     // En-passant
     movePiece(wPawns, moveFrom, moveTo);
 
     if (moveTo & enPassant) {
-      removeCapturedBlack(moveTo >> 8, moveInfo.capturedPiece, moveInfo.capturedPieceType);
-    } else if (moveTo & moveFrom << 16) {
-      wasEnPassant = true;
-      enPassant = moveFrom << 8;
+      // Capture the pawn behind the position the actual pawn moved to
+      removeCapturedBlack(soutOne(moveTo), moveInfo.capturedPiece, moveInfo.capturedPieceType);
+    } else if (moveTo & nortTwo(moveFrom)) {
+      // Here we need to set the position of possible en-passant
+      enPassant = nortOne(moveFrom);
+      enPassantSet = true;
     }
 
+
+    // Handling of promotion
+    if (moveTo & RANK_8) {
+      // Promotion occured
+      std::cout << "white promotion\n";
+    }
 
   } else if (wKnights & moveFrom) {
     movePiece(wKnights, moveFrom, moveTo);
@@ -567,11 +584,19 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
 
     // If the destination matches en-passant move then handle it
     if (moveTo & enPassant) {
-      // Removing the piece behind the piece
-      removeCapturedBlack(moveTo << 8, moveInfo.capturedPiece, moveInfo.capturedPieceType);
-    } else if (moveTo & moveFrom >> 16) {
-      wasEnPassant = true;
-      enPassant = moveFrom >> 8;
+      // Capture the pawn behind the position the actual pawn moved to
+      removeCapturedBlack(nortOne(moveTo), moveInfo.capturedPiece, moveInfo.capturedPieceType);
+    } else if (moveTo & soutTwo(moveFrom)) {
+      // Here we need to set en-passant to enable it in the next move if played
+      enPassant = soutOne(moveFrom);
+      enPassantSet = true;
+    }
+
+
+    // Handling of promotion
+    if (moveTo & RANK_1) {
+      // Promotion occured
+      std::cout << "black promotion\n";
     }
 
   } else if (bKnights & moveFrom) {
@@ -612,7 +637,7 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
     removeCapturedWhite(moveTo, moveInfo.capturedPiece, moveInfo.capturedPieceType);
 
 
-  if (!wasEnPassant)
+  if (!enPassantSet)
     enPassant = 0;
 
 
@@ -620,11 +645,6 @@ bool CBoard::makeMove(const Bitboard moveFrom, const Bitboard moveTo) {
   m_moveList.push(moveInfo);
 
   return true;
-}
-
-
-bool CBoard::canMakeMove(Bitboard moveFrom, Bitboard moveTo) {
-  return moveTo & legalMoves(moveFrom);
 }
 
 
@@ -652,20 +672,31 @@ bool CBoard::unmakeMove() {
   Bitboard &opponentQueens = isWhiteMove ? bQueens : wQueens;
   Bitboard &opponentKing = isWhiteMove ? bKing : wKing;
 
+  Bitboard revertMove[2] = { lastMove.moveTo, lastMove.moveFrom };
+
   // Unmake the move -> moveTo to moveFrom
-  if (pawns & lastMove.moveTo) movePiece(pawns, lastMove.moveTo, lastMove.moveFrom);
-  else if (knights & lastMove.moveTo) movePiece(knights, lastMove.moveTo, lastMove.moveFrom);
-  else if (bishops & lastMove.moveTo) movePiece(bishops, lastMove.moveTo, lastMove.moveFrom);
-  else if (rooks & lastMove.moveTo) movePiece(rooks, lastMove.moveTo, lastMove.moveFrom);
-  else if (queens & lastMove.moveTo) movePiece(queens, lastMove.moveTo, lastMove.moveFrom);
-  else if (king & lastMove.moveTo) movePiece(king, lastMove.moveTo, lastMove.moveFrom);
+  if (pawns & lastMove.moveTo) movePiece(pawns, revertMove[0], revertMove[1]);
+  else if (knights & lastMove.moveTo) movePiece(knights, revertMove[0], revertMove[1]);
+  else if (bishops & lastMove.moveTo) movePiece(bishops, revertMove[0], revertMove[1]);
+  else if (rooks & lastMove.moveTo) movePiece(rooks, revertMove[0], revertMove[1]);
+  else if (queens & lastMove.moveTo) movePiece(queens, revertMove[0], revertMove[1]);
+  else if (king & lastMove.moveTo) movePiece(king, revertMove[0], revertMove[1]);
+
 
   // Handle castling
   if (king & lastMove.moveFrom) {
-    if (lastMove.moveTo == (lastMove.moveFrom << 2)) { // Queenside castling
-      movePiece(rooks, lastMove.moveFrom >> 3, lastMove.moveFrom >> 1);
-    } else if (lastMove.moveTo == (lastMove.moveFrom >> 2)) { // Kingside castling
-      movePiece(rooks, lastMove.moveFrom << 3, lastMove.moveFrom << 1);
+
+    if (lastMove.moveTo == lastMove.moveFrom << 2) {
+      // KingSide castling
+      Bitboard rookInitialPos = lastMove.moveFrom << 3;
+      Bitboard rookFinalPos = lastMove.moveFrom << 1;
+      movePiece(rooks, rookFinalPos, rookInitialPos);
+
+    } else if (lastMove.moveTo == lastMove.moveFrom >> 2) {
+      // QueenSide castling
+      Bitboard rookInitialPos = lastMove.moveFrom >> 4;
+      Bitboard rookFinalPos = lastMove.moveFrom >> 1;
+      movePiece(rooks, rookFinalPos, rookInitialPos);
     }
   }
 
@@ -827,13 +858,16 @@ int CBoard::pieceSquareValue(Bitboard pieces, const int table[64]) {
   return score;
 }
 
+std::pair<int, std::pair<Bitboard, Bitboard>> CBoard::negamax(int depth) {
+  if (depth == 0) {
+    return {evaluate(), {0, 0}}; // Return evaluation and a dummy move
+  }
 
-int CBoard::negamax(int depth) {
-  if (depth == 0)
-    return evaluate();
-
+  std::cout << "we are at depth: " << depth << std::endl;
 
   int maxEval = INT_MIN;
+  std::pair<Bitboard, Bitboard> bestMove = {0, 0};
+
   Bitboard positions = onMovePositions();
 
   while (positions) {
@@ -841,13 +875,30 @@ int CBoard::negamax(int depth) {
     positions &= positions - 1;
 
     auto moves = generateMoves(moveFrom);
-    for (const auto &move: moves) {
+    for (const auto &move : moves) {
       makeMove(move.first, move.second);
-      int eval = -negamax(depth - 1);
+      int eval = -negamax(depth - 1).first;
       unmakeMove();
-      maxEval = std::max(maxEval, eval);
+
+      if (eval > maxEval) {
+        maxEval = eval;
+        bestMove = move;
+      }
     }
   }
 
-  return maxEval;
+  return {maxEval, bestMove};
+}
+
+
+void CBoard::makeAIMove(int depth) {
+  auto result = negamax(depth);
+  std::pair<Bitboard, Bitboard> bestMove = result.second;
+
+  if (bestMove.first != 0 && bestMove.second != 0) { // Check if a valid move was found
+    makeMove(bestMove.first, bestMove.second);
+  } else {
+    // Handle the case where no move was found (e.g., checkmate or stalemate)
+    std::cout << "No valid moves found. Game over?" << std::endl;
+  }
 }

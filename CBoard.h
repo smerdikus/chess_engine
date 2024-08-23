@@ -428,7 +428,9 @@ public:
 
   static int popcount(Bitboard bb);
 
-  int negamax(int depth);
+  std::pair<int, std::pair<Bitboard, Bitboard>> negamax(int depth);
+
+  void makeAIMove(int depth);
 };
 
 #endif //SFML_CHESS_CBOARD_H

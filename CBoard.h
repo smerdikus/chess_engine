@@ -11,6 +11,7 @@
 #include <bitset>
 #include <stack>
 #include <cstdint>
+#include "CBitboardIterator.h"
 
 
 #define TILE    70
@@ -19,6 +20,7 @@
 #define BORDER  1
 
 typedef uint64_t Bitboard;
+
 
 
 class CBoard {
@@ -429,8 +431,6 @@ public:
   static int popcount(Bitboard bb);
 
   std::pair<int, std::pair<Bitboard, Bitboard>> negamax(int depth);
-
-  void makeAIMove(int depth);
 };
 
 #endif //SFML_CHESS_CBOARD_H

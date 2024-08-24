@@ -63,22 +63,20 @@ int main() {
             if (moveFrom == 0) {
               if (currentPos & brd.onMovePositions())
                 moveFrom = currentPos;
+              brd.generateMoves(currentPos);
             } else {
               Bitboard moveTo = currentPos;
 
-              if (moveFrom == moveTo)
+              if (moveFrom == currentPos || (currentPos & brd.onMovePositions())) {
+                moveFrom = currentPos;
                 break;
+              }
 
 
               // If the move is in legal moves, provide it, if not just continue
-              if (brd.canMakeMove(moveFrom, moveTo)) {
-                if (currentPos & brd.onMovePositions()) {
-                  moveFrom = currentPos;
-                  break;
-                }
-
+              if (brd.canMakeMove(moveFrom, moveTo))
                 brd.makeMove(moveFrom, moveTo);
-              }
+
 
 
               moveFrom = 0;
@@ -91,10 +89,6 @@ int main() {
       }
     }
 
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) {
-      brd.makeAIMove(1);
-    }
 
 
     window.clear(sf::Color::Black);

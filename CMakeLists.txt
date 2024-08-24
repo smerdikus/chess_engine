@@ -11,7 +11,8 @@ find_package(SFML REQUIRED COMPONENTS system window graphics network audio)
 include_directories(${SFML_INCLUDE_DIR})
 
 # Add your executable
-add_executable(sfml_chess main.cpp CBoard.cpp CBoard.h)
+add_executable(sfml_chess main.cpp CBoard.cpp CBoard.h
+        CBitboardIterator.h)
 
 # Link SFML libraries to your executable
 target_link_libraries(sfml_chess sfml-system sfml-window sfml-graphics sfml-network sfml-audio)

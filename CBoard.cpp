@@ -54,7 +54,6 @@ CBoard::CBoard(sf::Texture textures[12]) {
 
 
 void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom) {
-  std::cout << (whiteToMove() ? "white on move\n" : "black on move\n");
 
   // Drawing the board and squares
   for (int y = 0; y < 8; ++y) {
@@ -367,7 +366,7 @@ Bitboard CBoard::wKingSafe(Bitboard pos) const {
   blackAttacks |= bQueenMoves(bQueens);
   blackAttacks |= oneAround(bKing);
 
-  return pos & ~blackAttacks;
+  return pos & ~blackAttacks; // Return squares not attacked by white and bKing
 }
 
 Bitboard CBoard::bKingSafe(Bitboard pos) const {
@@ -382,7 +381,7 @@ Bitboard CBoard::bKingSafe(Bitboard pos) const {
   whiteAttacks |= wQueenMoves(wQueens);
   whiteAttacks |= oneAround(wKing);
 
-  return pos & ~whiteAttacks;
+  return pos & ~whiteAttacks; // Return squares not attacked by white and bKing
 }
 
 Bitboard CBoard::wKingMoves(Bitboard pos) const {
@@ -478,12 +477,12 @@ Bitboard CBoard::legalMoves(Bitboard pos) {
 
 
 bool CBoard::isMoveLegal(Bitboard from, Bitboard to) {
-  if (!makeMove(from, to)) return false;
 
-  bool isSafe = whiteToMove() ? bKingSafe(bKing) : wKingSafe(wKing);
+  makeMove(from, to);
+  bool isValid = whiteToMove() ? bKingSafe(bKing) : wKingSafe(wKing);
   unmakeMove();
 
-  return isSafe;
+  return isValid;
 }
 
 
@@ -888,17 +887,4 @@ std::pair<int, std::pair<Bitboard, Bitboard>> CBoard::negamax(int depth) {
   }
 
   return {maxEval, bestMove};
-}
-
-
-void CBoard::makeAIMove(int depth) {
-  auto result = negamax(depth);
-  std::pair<Bitboard, Bitboard> bestMove = result.second;
-
-  if (bestMove.first != 0 && bestMove.second != 0) { // Check if a valid move was found
-    makeMove(bestMove.first, bestMove.second);
-  } else {
-    // Handle the case where no move was found (e.g., checkmate or stalemate)
-    std::cout << "No valid moves found. Game over?" << std::endl;
-  }
 }

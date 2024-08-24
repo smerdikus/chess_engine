@@ -63,7 +63,7 @@ int main() {
             if (moveFrom == 0) {
               if (currentPos & brd.onMovePositions())
                 moveFrom = currentPos;
-              brd.generateMoves(currentPos);
+
             } else {
               Bitboard moveTo = currentPos;
 

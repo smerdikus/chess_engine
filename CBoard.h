@@ -385,6 +385,21 @@ private:
   }
 
 
+  static bool handleRookMove(Bitboard& rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard& castlingRights);
+
+  bool handleKingMove(Bitboard& king, Bitboard& rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard& castlingRights) const;
+
+  bool handlePawnMove(Bitboard& pawns, Bitboard moveFrom, Bitboard moveTo, bool& enPassantSet, MoveInfo& moveInfo);
+
+  static bool movePieceIfValid(Bitboard& pieceSet, Bitboard moveFrom, Bitboard moveTo);
+
+  bool unmakePieceMove(Bitboard &pieceSet, const MoveInfo &lastMove);
+
+  void unmakeCastlingMove(Bitboard &rooks, const MoveInfo &lastMove);
+
+  void restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPawns, Bitboard &opponentKnights,
+                            Bitboard &opponentBishops, Bitboard &opponentRooks, Bitboard &opponentQueens, Bitboard &opponentKing);
+
 public:
   explicit CBoard(sf::Texture textures[12]);
 
@@ -393,6 +408,8 @@ public:
   bool whiteToMove() const;
 
   bool blackToMove() const;
+
+  void handleCapture(Bitboard moveTo, MoveInfo& moveInfo);
 
   inline Bitboard white() const;
 

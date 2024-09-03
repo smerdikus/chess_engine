@@ -26,11 +26,6 @@ typedef uint64_t Bitboard;
 class CBoard {
 private:
 
-  enum class GameStatus {
-    InProgress, Draw, WhiteWon, BlackWon
-  };
-
-
   struct MoveInfo {
     Bitboard moveFrom;
     Bitboard moveTo;
@@ -40,7 +35,38 @@ private:
     int previousOnTurn;
     bool wasEnPassant;
     char capturedPieceType; // Store type of captured piece ('P', 'N', 'B', 'R', 'Q', 'K')
+    Bitboard isPromotion;
+    Bitboard *promotedTo;
   };
+
+
+
+  // Create piece bitboards
+  Bitboard wPawns, wKnights, wBishops, wRooks, wQueens, wKing;
+  Bitboard bPawns, bKnights, bBishops, bRooks, bQueens, bKing;
+
+  Bitboard wCastling;
+  Bitboard bCastling;
+
+  Bitboard enPassant;
+
+  int onTurn;
+
+  std::stack<MoveInfo> m_moveList;
+
+  // Colors for the palette
+  mutable sf::Color lightSquareColor; // Just for drawing -> mutable
+  mutable sf::Color darkSquareColor; // Just for drawing -> mutable
+  mutable sf::Color borderColor; // Just for drawing -> mutable
+  mutable sf::Color highlightSrcColor; // Just for drawing -> mutable
+  mutable sf::Color highlightDstColor; // Just for drawing -> mutable
+
+  // Create an array to store sprites
+  mutable sf::Sprite m_sprites[12];     // Just for drawing -> mutable
+  mutable sf::Texture m_textures[12];     // Just for drawing -> mutable
+  mutable sf::RectangleShape m_rectangle; // Just for drawing -> mutable
+
+
 
 
 /*
@@ -175,30 +201,6 @@ private:
           -50, -30, -30, -30, -30, -30, -30, -50
   };
 
-
-  // Create piece bitboards
-  Bitboard wPawns, wKnights, wBishops, wRooks, wQueens, wKing;
-  Bitboard bPawns, bKnights, bBishops, bRooks, bQueens, bKing;
-
-  Bitboard wCastling;
-  Bitboard bCastling;
-
-  Bitboard enPassant;
-
-  int onTurn;
-
-  std::stack<MoveInfo> m_moveList;
-
-  // Colors for the palette
-  sf::Color lightSquareColor;
-  sf::Color darkSquareColor;
-  sf::Color borderColor;
-  sf::Color highlightSrcColor;
-  sf::Color highlightDstColor;
-
-  // Create an array to store sprites
-  mutable sf::Sprite m_sprites[12];     // Just for drawing -> mutable
-  mutable sf::RectangleShape m_rectangle;
 
 
 /*
@@ -375,7 +377,7 @@ private:
  ************************************************************
  */
 
-  static void movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo);
+  static bool movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo);
 
   template<bool isWhite>
   constexpr Bitboard enemyOrEmpty() const {
@@ -393,17 +395,26 @@ private:
 
   static bool movePieceIfValid(Bitboard& pieceSet, Bitboard moveFrom, Bitboard moveTo);
 
-  bool unmakePieceMove(Bitboard &pieceSet, const MoveInfo &lastMove);
+  static bool unmakePieceMove(Bitboard &pieceSet, const MoveInfo &lastMove);
 
-  void unmakeCastlingMove(Bitboard &rooks, const MoveInfo &lastMove);
+  static void unmakeCastlingMove(Bitboard &rooks, const MoveInfo &lastMove);
 
-  void restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPawns, Bitboard &opponentKnights,
+  static void restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPawns, Bitboard &opponentKnights,
                             Bitboard &opponentBishops, Bitboard &opponentRooks, Bitboard &opponentQueens, Bitboard &opponentKing);
 
+
 public:
-  explicit CBoard(sf::Texture textures[12]);
+  explicit CBoard();
+
+  bool loadTextures(const std::string texturePath[12]) const;
 
   void draw(sf::RenderWindow &window, Bitboard moveFrom);
+
+  static char showPromotionWindow();
+
+  Bitboard isPromotion() const;
+
+  void handlePromotion(char promotionPiece);
 
   bool whiteToMove() const;
 
@@ -421,8 +432,6 @@ public:
 
   bool makeMove(Bitboard moveFrom, Bitboard moveTo);
 
-  bool canMakeMove(Bitboard moveFrom, Bitboard moveTo);
-
   bool unmakeMove();
 
   Bitboard pseudoLegalMoves(Bitboard pos) const;
@@ -434,8 +443,6 @@ public:
   Bitboard onMovePositions() const;
 
   std::vector<std::pair<Bitboard, Bitboard>> generateMoves(Bitboard moveFrom);
-
-  GameStatus isCheckmate();
 
   int evaluate();
 

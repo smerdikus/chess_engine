@@ -8,29 +8,29 @@ int main() {
 
   window.setFramerateLimit(60);
 
-  // Board initialization
-
-  // Create a map to store textures
-  sf::Texture textures[12];
-
-  // Load textures of the pieces
-  if (!textures[0].loadFromFile("../assets/white-pawn.png") ||
-      !textures[1].loadFromFile("../assets/white-king.png") ||
-      !textures[2].loadFromFile("../assets/white-knight.png") ||
-      !textures[3].loadFromFile("../assets/white-bishop.png") ||
-      !textures[4].loadFromFile("../assets/white-queen.png") ||
-      !textures[5].loadFromFile("../assets/white-rook.png") ||
-      !textures[6].loadFromFile("../assets/black-pawn.png") ||
-      !textures[7].loadFromFile("../assets/black-king.png") ||
-      !textures[8].loadFromFile("../assets/black-knight.png") ||
-      !textures[9].loadFromFile("../assets/black-bishop.png") ||
-      !textures[10].loadFromFile("../assets/black-queen.png") ||
-      !textures[11].loadFromFile("../assets/black-rook.png"))
-    return -1;
 
 
   // Initialize the board
-  CBoard brd(textures);
+  CBoard brd;
+
+  std::string textures[] = {
+          "../assets/white-pawn.png",
+          "../assets/white-king.png",
+          "../assets/white-knight.png",
+          "../assets/white-bishop.png",
+          "../assets/white-queen.png",
+          "../assets/white-rook.png",
+          "../assets/black-pawn.png",
+          "../assets/black-king.png",
+          "../assets/black-knight.png",
+          "../assets/black-bishop.png",
+          "../assets/black-queen.png",
+          "../assets/black-rook.png"
+  };
+
+  // Load textures of the pieces
+  if (!brd.loadTextures(textures))
+    return -1;
 
 
   Bitboard moveFrom = 0;
@@ -74,9 +74,8 @@ int main() {
 
 
               // If the move is in legal moves, provide it, if not just continue
-              if (brd.canMakeMove(moveFrom, moveTo))
+              if (brd.isMoveLegal(moveFrom, moveTo))
                 brd.makeMove(moveFrom, moveTo);
-
 
 
               moveFrom = 0;
@@ -90,6 +89,8 @@ int main() {
     }
 
 
+    if (brd.isPromotion())
+      brd.handlePromotion(CBoard::showPromotionWindow());
 
     window.clear(sf::Color::Black);
 

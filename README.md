@@ -60,7 +60,7 @@ This chess engine uses bitboards for efficient board representation and implemen
 To run the chess engine executable:
 
    ```sh
-   ./chess_engine
+   ./run.sh
    ```
 
 This will start the chess engine and prompt you to enter moves.

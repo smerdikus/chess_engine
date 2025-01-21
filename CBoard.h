@@ -22,7 +22,6 @@
 typedef uint64_t Bitboard;
 
 
-
 class CBoard {
 private:
 
@@ -35,10 +34,9 @@ private:
     int previousOnTurn;
     bool wasEnPassant;
     char capturedPieceType; // Store type of captured piece ('P', 'N', 'B', 'R', 'Q', 'K')
-    Bitboard isPromotion;
+    Bitboard wasPromotion;
     Bitboard *promotedTo;
   };
-
 
 
   // Create piece bitboards
@@ -49,6 +47,15 @@ private:
   Bitboard bCastling;
 
   Bitboard enPassant;
+
+  bool wKingMoved = false;
+  bool bKingMoved = false;
+
+  bool wRookMovedKingSide = false;
+  bool bRookMovedKingSide = false;
+
+  bool wRookMovedQueenSide = false;
+  bool bRookMovedQueenSide = false;
 
   int onTurn;
 
@@ -78,33 +85,104 @@ private:
  ************************************************************
  */
 
-  static constexpr uint64_t RANK_1 = 0x00000000000000FF;
-  static constexpr uint64_t RANK_2 = 0x000000000000FF00;
-  static constexpr uint64_t RANK_3 = 0x0000000000FF0000;
-  static constexpr uint64_t RANK_4 = 0x00000000FF000000;
-  static constexpr uint64_t RANK_5 = 0x000000FF00000000;
-  static constexpr uint64_t RANK_6 = 0x0000FF0000000000;
-  static constexpr uint64_t RANK_7 = 0x00FF000000000000;
-  static constexpr uint64_t RANK_8 = 0xFF00000000000000;
+  static constexpr Bitboard RANK_1 = 0x00000000000000FF;
+  static constexpr Bitboard RANK_2 = 0x000000000000FF00;
+  static constexpr Bitboard RANK_3 = 0x0000000000FF0000;
+  static constexpr Bitboard RANK_4 = 0x00000000FF000000;
+  static constexpr Bitboard RANK_5 = 0x000000FF00000000;
+  static constexpr Bitboard RANK_6 = 0x0000FF0000000000;
+  static constexpr Bitboard RANK_7 = 0x00FF000000000000;
+  static constexpr Bitboard RANK_8 = 0xFF00000000000000;
 
-  static constexpr uint64_t FILE_A = 0x0101010101010101;
-  static constexpr uint64_t FILE_B = 0x0202020202020202;
-  static constexpr uint64_t FILE_C = 0x0404040404040404;
-  static constexpr uint64_t FILE_D = 0x0808080808080808;
-  static constexpr uint64_t FILE_E = 0x1010101010101010;
-  static constexpr uint64_t FILE_F = 0x2020202020202020;
-  static constexpr uint64_t FILE_G = 0x4040404040404040;
-  static constexpr uint64_t FILE_H = 0x8080808080808080;
+  static constexpr Bitboard FILE_A = 0x0101010101010101;
+  static constexpr Bitboard FILE_B = 0x0202020202020202;
+  static constexpr Bitboard FILE_C = 0x0404040404040404;
+  static constexpr Bitboard FILE_D = 0x0808080808080808;
+  static constexpr Bitboard FILE_E = 0x1010101010101010;
+  static constexpr Bitboard FILE_F = 0x2020202020202020;
+  static constexpr Bitboard FILE_G = 0x4040404040404040;
+  static constexpr Bitboard FILE_H = 0x8080808080808080;
 
-  static constexpr uint64_t NOT_FILE_A = ~0x0101010101010101;
-  static constexpr uint64_t NOT_FILE_B = ~0x0202020202020202;
-  static constexpr uint64_t NOT_FILE_C = ~0x0404040404040404;
-  static constexpr uint64_t NOT_FILE_D = ~0x0808080808080808;
-  static constexpr uint64_t NOT_FILE_E = ~0x1010101010101010;
-  static constexpr uint64_t NOT_FILE_F = ~0x2020202020202020;
-  static constexpr uint64_t NOT_FILE_G = ~0x4040404040404040;
-  static constexpr uint64_t NOT_FILE_H = ~0x8080808080808080;
+  static constexpr Bitboard NOT_FILE_A = ~0x0101010101010101;
+  static constexpr Bitboard NOT_FILE_B = ~0x0202020202020202;
+  static constexpr Bitboard NOT_FILE_C = ~0x0404040404040404;
+  static constexpr Bitboard NOT_FILE_D = ~0x0808080808080808;
+  static constexpr Bitboard NOT_FILE_E = ~0x1010101010101010;
+  static constexpr Bitboard NOT_FILE_F = ~0x2020202020202020;
+  static constexpr Bitboard NOT_FILE_G = ~0x4040404040404040;
+  static constexpr Bitboard NOT_FILE_H = ~0x8080808080808080;
 
+  const Bitboard A1 = 1ULL << 0;
+  const Bitboard B1 = 1ULL << 1;
+  const Bitboard C1 = 1ULL << 2;
+  const Bitboard D1 = 1ULL << 3;
+  const Bitboard E1 = 1ULL << 4;
+  const Bitboard F1 = 1ULL << 5;
+  const Bitboard G1 = 1ULL << 6;
+  const Bitboard H1 = 1ULL << 7;
+
+  const Bitboard A2 = 1ULL << 8;
+  const Bitboard B2 = 1ULL << 9;
+  const Bitboard C2 = 1ULL << 10;
+  const Bitboard D2 = 1ULL << 11;
+  const Bitboard E2 = 1ULL << 12;
+  const Bitboard F2 = 1ULL << 13;
+  const Bitboard G2 = 1ULL << 14;
+  const Bitboard H2 = 1ULL << 15;
+
+  const Bitboard A3 = 1ULL << 16;
+  const Bitboard B3 = 1ULL << 17;
+  const Bitboard C3 = 1ULL << 18;
+  const Bitboard D3 = 1ULL << 19;
+  const Bitboard E3 = 1ULL << 20;
+  const Bitboard F3 = 1ULL << 21;
+  const Bitboard G3 = 1ULL << 22;
+  const Bitboard H3 = 1ULL << 23;
+
+  const Bitboard A4 = 1ULL << 24;
+  const Bitboard B4 = 1ULL << 25;
+  const Bitboard C4 = 1ULL << 26;
+  const Bitboard D4 = 1ULL << 27;
+  const Bitboard E4 = 1ULL << 28;
+  const Bitboard F4 = 1ULL << 29;
+  const Bitboard G4 = 1ULL << 30;
+  const Bitboard H4 = 1ULL << 31;
+
+  const Bitboard A5 = 1ULL << 32;
+  const Bitboard B5 = 1ULL << 33;
+  const Bitboard C5 = 1ULL << 34;
+  const Bitboard D5 = 1ULL << 35;
+  const Bitboard E5 = 1ULL << 36;
+  const Bitboard F5 = 1ULL << 37;
+  const Bitboard G5 = 1ULL << 38;
+  const Bitboard H5 = 1ULL << 39;
+
+  const Bitboard A6 = 1ULL << 40;
+  const Bitboard B6 = 1ULL << 41;
+  const Bitboard C6 = 1ULL << 42;
+  const Bitboard D6 = 1ULL << 43;
+  const Bitboard E6 = 1ULL << 44;
+  const Bitboard F6 = 1ULL << 45;
+  const Bitboard G6 = 1ULL << 46;
+  const Bitboard H6 = 1ULL << 47;
+
+  const Bitboard A7 = 1ULL << 48;
+  const Bitboard B7 = 1ULL << 49;
+  const Bitboard C7 = 1ULL << 50;
+  const Bitboard D7 = 1ULL << 51;
+  const Bitboard E7 = 1ULL << 52;
+  const Bitboard F7 = 1ULL << 53;
+  const Bitboard G7 = 1ULL << 54;
+  const Bitboard H7 = 1ULL << 55;
+
+  const Bitboard A8 = 1ULL << 56;
+  const Bitboard B8 = 1ULL << 57;
+  const Bitboard C8 = 1ULL << 58;
+  const Bitboard D8 = 1ULL << 59;
+  const Bitboard E8 = 1ULL << 60;
+  const Bitboard F8 = 1ULL << 61;
+  const Bitboard G8 = 1ULL << 62;
+  const Bitboard H8 = 1ULL << 63;
 
 /*
  ************************************************************
@@ -200,7 +278,6 @@ private:
           -30, -30, 0, 0, 0, 0, -30, -30,
           -50, -30, -30, -30, -30, -30, -30, -50
   };
-
 
 
 /*
@@ -358,6 +435,8 @@ private:
  ************************************************************
  */
 
+  bool castleRights(bool isWhite) const;
+
   inline static Bitboard oneAround(Bitboard pos);
 
   Bitboard wKingSafe(Bitboard pos) const;
@@ -387,20 +466,22 @@ private:
   }
 
 
-  static bool handleRookMove(Bitboard& rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard& castlingRights);
+  static bool handleRookMove(Bitboard &rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard &castlingRights);
 
-  bool handleKingMove(Bitboard& king, Bitboard& rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard& castlingRights) const;
+  bool
+  handleKingMove(Bitboard &king, Bitboard &rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard &castlingRights) const;
 
-  bool handlePawnMove(Bitboard& pawns, Bitboard moveFrom, Bitboard moveTo, bool& enPassantSet, MoveInfo& moveInfo);
+  bool handlePawnMove(Bitboard &pawns, Bitboard moveFrom, Bitboard moveTo, bool &enPassantSet, MoveInfo &moveInfo);
 
-  static bool movePieceIfValid(Bitboard& pieceSet, Bitboard moveFrom, Bitboard moveTo);
+  static bool movePieceIfValid(Bitboard &pieceSet, Bitboard moveFrom, Bitboard moveTo);
 
   static bool unmakePieceMove(Bitboard &pieceSet, const MoveInfo &lastMove);
 
   static void unmakeCastlingMove(Bitboard &rooks, const MoveInfo &lastMove);
 
   static void restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPawns, Bitboard &opponentKnights,
-                            Bitboard &opponentBishops, Bitboard &opponentRooks, Bitboard &opponentQueens, Bitboard &opponentKing);
+                                   Bitboard &opponentBishops, Bitboard &opponentRooks, Bitboard &opponentQueens,
+                                   Bitboard &opponentKing);
 
 
 public:
@@ -416,19 +497,17 @@ public:
 
   void handlePromotion(char promotionPiece);
 
-  bool whiteToMove() const;
+  inline bool whiteToMove() const;
 
-  bool blackToMove() const;
+  inline bool blackToMove() const;
 
-  void handleCapture(Bitboard moveTo, MoveInfo& moveInfo);
+  void handleCapture(Bitboard moveTo, MoveInfo &moveInfo);
 
   inline Bitboard white() const;
 
   inline Bitboard black() const;
 
   inline Bitboard empty() const;
-
-  int pieceCount() const;
 
   bool makeMove(Bitboard moveFrom, Bitboard moveTo);
 
@@ -444,13 +523,21 @@ public:
 
   std::vector<std::pair<Bitboard, Bitboard>> generateMoves(Bitboard moveFrom);
 
+  bool isEndgame() const;
+
+  int countMaterial(bool isWhite) const;
+
+  int materialEvaluation() const;
+
+  int positionalEvaluation() const;
+
+  int kingSafetyEvaluation() const;
+
+  int pawnStructureEvaluation() const;
+
+  int mobilityEvaluation();
+
   int evaluate();
-
-  static int pieceSquareValue(Bitboard pieces, const int table[64]);
-
-  static int evaluatePawnStructure(Bitboard pawns, Bitboard opponentPawns);
-
-  int evaluateMobility(Bitboard onMove);
 
   static int popcount(Bitboard bb);
 

@@ -28,12 +28,31 @@ int main() {
           "../assets/black-rook.png"
   };
 
+
+
   // Load textures of the pieces
   if (!brd.loadTextures(textures))
     return -1;
 
 
   Bitboard moveFrom = 0;
+
+
+  sf::Font font;
+  if (!font.loadFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
+    std::cout << "Could not load font" << std::endl;
+    return 1;
+  }
+
+
+
+  sf::Text victoryText;
+  victoryText.setFont(font);
+  victoryText.setCharacterSize(64);
+
+  victoryText.setFillColor(sf::Color::Red);
+  victoryText.setStyle(sf::Text::Bold);
+
 
 
   // Main loop handling window
@@ -46,8 +65,14 @@ int main() {
     sf::Event event = sf::Event();
     while (window.pollEvent(event)) {
       switch (event.type) {
+
         case sf::Event::Closed:
           window.close();
+          break;
+
+        case sf::Event::KeyPressed:
+          if (event.key.code == sf::Keyboard::Escape)
+            window.close();
           break;
 
         case sf::Event::MouseButtonPressed:
@@ -57,7 +82,7 @@ int main() {
 
           if (event.mouseButton.button == sf::Mouse::Left) {
             // Here we need to get the index of the piece we clicked
-            int index = (mouseX / TILE) + ((HEIGHT - mouseY) / TILE) * 8;
+            int index = (mouseX / TILE) + ((HEIGHT - 30 - mouseY) / TILE) * 8;
             Bitboard currentPos = 1ULL << index;
 
             if (moveFrom == 0) {
@@ -89,12 +114,30 @@ int main() {
     }
 
 
-    if (brd.isPromotion())
+    std::cout << brd.evaluate() << std::endl;
+
+
+    if (brd.isWPromotion() | brd.isBPromotion())
       brd.handlePromotion(CBoard::showPromotionWindow());
 
-    window.clear(sf::Color::Black);
+    window.clear(sf::Color::Green);
 
     brd.draw(window, moveFrom);
+
+
+    if (!brd.legalMoves(brd.onMovePositions())) {
+      // If white is on turn, and has no moves, black won, negation is otherwise
+      window.clear(brd.whiteToMove() ? sf::Color::Black : sf::Color::White);
+
+
+      // set the victory string based on the whiteToMove
+      victoryText.setString(brd.whiteToMove() ? "Black won" : "White won");
+
+      sf::FloatRect textRect = victoryText.getLocalBounds();
+      victoryText.setPosition(sf::Vector2f((WIDTH - textRect.width) / 2., (HEIGHT - 100 - textRect.height) / 2.));
+
+      window.draw(victoryText); // draw the victory text
+    }
 
     window.display();
   }

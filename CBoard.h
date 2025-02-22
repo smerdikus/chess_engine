@@ -16,7 +16,7 @@
 
 #define TILE    70
 #define WIDTH   (8 * TILE) // 8 because We have 8 rectangles here
-#define HEIGHT  WIDTH
+#define HEIGHT  WIDTH + 30
 #define BORDER  1
 
 typedef uint64_t Bitboard;
@@ -46,7 +46,7 @@ private:
   Bitboard wCastling;
   Bitboard bCastling;
 
-  Bitboard enPassant;
+  Bitboard m_enPassant;
 
   bool wKingMoved = false;
   bool bKingMoved = false;
@@ -79,7 +79,6 @@ private:
 /*
  ************************************************************
  *                                                          *
- *                       Board positions                    *
  *                       Board positions                    *
  *                                                          *
  ************************************************************
@@ -188,7 +187,6 @@ private:
  ************************************************************
  *                                                          *
  *                     Evaluation values                    *
- *                     Evaluation values                    *
  *                                                          *
  ************************************************************
  */
@@ -284,7 +282,6 @@ private:
  ************************************************************
  *                                                          *
  *                    Bitwise Logic                         *
- *                    Bitwise Logic                         *
  *                                                          *
  ************************************************************
  */
@@ -325,7 +322,6 @@ private:
  ************************************************************
  *                                                          *
  *                       Pawn movement                      *
- *                       Pawn movement                      *
  *                                                          *
  ************************************************************
  */
@@ -356,7 +352,6 @@ private:
  ************************************************************
  *                                                          *
  *                    Knight movement                       *
- *                    Knight movement                       *
  *                                                          *
  ************************************************************
  */
@@ -385,7 +380,6 @@ private:
  ************************************************************
  *                                                          *
  *                    Bishop movement                       *
- *                    Bishop movement                       *
  *                                                          *
  ************************************************************
  */
@@ -402,7 +396,6 @@ private:
  ************************************************************
  *                                                          *
  *                      Rook movement                       *
- *                      Rook movement                       *
  *                                                          *
  ************************************************************
  */
@@ -417,7 +410,6 @@ private:
  ************************************************************
  *                                                          *
  *                     Queen movement                       *
- *                     Queen movement                       *
  *                                                          *
  ************************************************************
  */
@@ -430,12 +422,13 @@ private:
  ************************************************************
  *                                                          *
  *                      King movement                       *
- *                      King movement                       *
  *                                                          *
  ************************************************************
  */
 
-  bool castleRights(bool isWhite) const;
+  bool wcastleRights() const;
+
+  bool bcastleRights() const;
 
   inline static Bitboard oneAround(Bitboard pos);
 
@@ -450,7 +443,6 @@ private:
   /*
  ************************************************************
  *                                                          *
- *                   End of piece methods                   *
  *                   End of piece methods                   *
  *                                                          *
  ************************************************************
@@ -485,7 +477,22 @@ private:
 
 
 public:
+  struct Board {
+    Bitboard _wKing, _bKing;
+    Bitboard _wPawns, _bPawns;
+    Bitboard _wKnights, _bKnights;
+    Bitboard _wBishops, _bBishops;
+    Bitboard _wRooks, _bRooks;
+    Bitboard _wQueens, _bQueens;
+
+    Bitboard _wCastling, _bCastling;
+    Bitboard _enPassant;
+    int _onTurn;
+  };
+
   explicit CBoard();
+
+  void initPos(Board board);
 
   bool loadTextures(const std::string texturePath[12]) const;
 
@@ -493,7 +500,9 @@ public:
 
   static char showPromotionWindow();
 
-  Bitboard isPromotion() const;
+  inline Bitboard isWPromotion() const;
+
+  inline Bitboard isBPromotion() const;
 
   void handlePromotion(char promotionPiece);
 
@@ -523,9 +532,11 @@ public:
 
   std::vector<std::pair<Bitboard, Bitboard>> generateMoves(Bitboard moveFrom);
 
-  bool isEndgame() const;
+  bool isEndgame(int threshold) const;
 
-  int countMaterial(bool isWhite) const;
+  int countWMaterial() const;
+
+  int countBMaterial() const;
 
   int materialEvaluation() const;
 
@@ -539,7 +550,7 @@ public:
 
   int evaluate();
 
-  static int popcount(Bitboard bb);
+  static inline int popcount(Bitboard num);
 
   std::pair<int, std::pair<Bitboard, Bitboard>> negamax(int depth);
 };

@@ -161,6 +161,15 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom) {
   posFromBitboard(m_sprites[9], bBishops);
   posFromBitboard(m_sprites[10], bQueens);
   posFromBitboard(m_sprites[11], bRooks);
+
+
+  // Drawing the rectangle based on who is winning based on the eval function
+  sf::RectangleShape winningRect(sf::Vector2f(4 * TILE + evaluate() * onTurn, 30));
+
+  winningRect.setPosition(0, 8 * TILE);
+  winningRect.setFillColor(sf::Color::White);
+
+  window.draw(winningRect);
 }
 
 

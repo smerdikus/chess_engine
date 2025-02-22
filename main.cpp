@@ -114,13 +114,11 @@ int main() {
     }
 
 
-    std::cout << brd.evaluate() << std::endl;
-
 
     if (brd.isWPromotion() | brd.isBPromotion())
       brd.handlePromotion(CBoard::showPromotionWindow());
 
-    window.clear(sf::Color::Green);
+    window.clear(sf::Color::Black);
 
     brd.draw(window, moveFrom);
 

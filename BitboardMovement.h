@@ -15,19 +15,6 @@
 
 namespace chs {
 
-  struct Board {
-    Bitboard wKing, bKing;
-    Bitboard wPawns, bPawns;
-    Bitboard wKnights, bKnights;
-    Bitboard wBishops, bBishops;
-    Bitboard wRooks, bRooks;
-    Bitboard wQueens, bQueens;
-
-    Bitboard wCastling, bCastling;
-    Bitboard enPassant;
-    int onTurn;
-  };
-
 
   inline Bitboard nortOne(Bitboard pos) { return pos << 8; }
 
@@ -56,13 +43,8 @@ namespace chs {
   inline Bitboard soEa(Bitboard pos) { return soutOne(eastOne(pos)); }
 
 
-/*
- ************************************************************
- *                                                          *
- *                       Pawn movement                      *
- *                                                          *
- ************************************************************
- */
+  // ---------------- PAWNS ----------------
+
 
   inline Bitboard wSinglePush(Bitboard pawns, Bitboard empty) { return nortOne(pawns) & empty; }
 
@@ -92,13 +74,8 @@ namespace chs {
   }
 
 
-/*
- ************************************************************
- *                                                          *
- *                    Knight movement                       *
- *                                                          *
- ************************************************************
- */
+  // ---------------- KNIGHTS ----------------
+
 
   inline Bitboard noNoEa(Bitboard pos) { return (pos & NOT_FILE_H) << 17; }
 
@@ -131,13 +108,8 @@ namespace chs {
   }
 
 
-/*
- ************************************************************
- *                                                          *
- *                    Bishop movement                       *
- *                                                          *
- ************************************************************
- */
+  // ---------------- BISHOPS ----------------
+
 
   inline Bitboard sliderMoves(Bitboard pos, Bitboard (*directionFunc)(Bitboard), Bitboard enemies, Bitboard empty) {
     Bitboard res = 0;
@@ -176,13 +148,8 @@ namespace chs {
   }
 
 
-/*
- ************************************************************
- *                                                          *
- *                      Rook movement                       *
- *                                                          *
- ************************************************************
- */
+  // ---------------- ROOK ----------------
+
 
   inline Bitboard rookMoves(Bitboard pos, Bitboard enemies, Bitboard empty) {
     Bitboard res = 0;
@@ -206,13 +173,7 @@ namespace chs {
     return rookMoves(pos, white, empty);
   }
 
-/*
- ************************************************************
- *                                                          *
- *                     Queen movement                       *
- *                                                          *
- ************************************************************
- */
+  // ---------------- QUEEN ----------------
 
   inline Bitboard wQueenMoves(Bitboard pos, Bitboard black, Bitboard empty) {
     return wBishopMoves(pos, black, empty) | wRookMoves(pos, black, empty);

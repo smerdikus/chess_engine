@@ -78,26 +78,10 @@ namespace chs {
 
 
 
-/*
- ************************************************************
- *                                                          *
- *                    Bitwise Logic                         *
- *                                                          *
- ************************************************************
- */
-
     void removeCapturedWhite(Bitboard pos, Bitboard &removedFrom, char &pieceType);
 
     void removeCapturedBlack(Bitboard moveTo, Bitboard &removedFrom, char &pieceType);
 
-
-/*
- ************************************************************
- *                                                          *
- *                      King movement                       *
- *                                                          *
- ************************************************************
- */
 
     bool wcastleRights() const;
 
@@ -111,13 +95,6 @@ namespace chs {
 
     Bitboard bKingMoves(Bitboard pos) const;
 
-    /*
-   ************************************************************
-   *                                                          *
-   *                   End of piece methods                   *
-   *                                                          *
-   ************************************************************
-   */
 
     static bool movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo);
 
@@ -148,6 +125,18 @@ namespace chs {
 
 
   public:
+    struct Board {
+      Bitboard wKing, bKing;
+      Bitboard wPawns, bPawns;
+      Bitboard wKnights, bKnights;
+      Bitboard wBishops, bBishops;
+      Bitboard wRooks, bRooks;
+      Bitboard wQueens, bQueens;
+
+      Bitboard wCastling, bCastling;
+      Bitboard enPassant;
+      int onTurn;
+    };
 
     explicit CBoard();
 

@@ -97,9 +97,6 @@ bool CBoard::loadTextures(const std::string texturePath[12]) const {
 
 
 void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font) {
-
-  // If white won draw a white screen if black won, draw a black screen
-
   // Drawing the board and squares
   for (int y = 0; y < 8; ++y) {
     for (int x = 0; x < 8; ++x) {
@@ -109,7 +106,6 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font) {
     }
   }
 
-  // Drawing the selected square, if any
   if (moveFrom) {
     int pos = __builtin_ctzll(moveFrom); // Extracting the set bit to draw it on the board
 
@@ -119,18 +115,18 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font) {
     m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
     m_rectangle.setFillColor(highlightSrcColor);
     window.draw(m_rectangle);
-  }
 
-  // Highlighting possible moves
-  Bitboard possibleMoves = legalMoves(moveFrom);
-  for (int square = 0; square < 64; ++square) {
-    if (possibleMoves & (1ULL << square)) {
-      int x = square % 8;
-      int y = 7 - (square / 8);
+    // Highlighting possible moves
+    Bitboard possibleMoves = legalMoves(moveFrom);
+    for (int square = 0; square < 64; ++square) {
+      if (possibleMoves & (1ULL << square)) {
+        int x = square % 8;
+        int y = 7 - (square / 8);
 
-      m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
-      m_rectangle.setFillColor(highlightDstColor); // Highlight color for possible moves
-      window.draw(m_rectangle);
+        m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+        m_rectangle.setFillColor(highlightDstColor); // Highlight color for possible moves
+        window.draw(m_rectangle);
+      }
     }
   }
 
@@ -155,9 +151,9 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font) {
           bPawns, bKing, bKnights, bBishops, bQueens, bRooks
   };
 
-  for (size_t i = 0; i < 12; ++i) {
+  for (size_t i = 0; i < 12; ++i)
     posFromBitboard(m_sprites[i], pieces[i]);
-  }
+
 
   // Drawing the rectangle based on who is winning based on the eval function
   sf::RectangleShape winningRect(sf::Vector2f(4 * TILE + evaluate() * onTurn / 3, 30));
@@ -175,8 +171,6 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font) {
   text.setFillColor(sf::Color(130, 130, 160, 255));
 
   // Get the local bounds of the text and rectangle, then set the position of the text according to these bounds
-  sf::FloatRect textRect = text.getLocalBounds();
-  sf::FloatRect rect = winningRect.getLocalBounds();
   text.setPosition((WIDTH - text.getLocalBounds().width) / 2, TILE * 8);
 
   // Draw the text
@@ -840,11 +834,9 @@ int CBoard::evaluate() {
 
 int CBoard::popcount(Bitboard num) { return __builtin_popcountll(num); }
 
-
 std::pair<int, std::pair<Bitboard, Bitboard>> CBoard::negamax(int depth) {
   if (depth <= 0)
     return {evaluate(), {0, 0}}; // Return evaluation and a dummy move
-
 
   int maxEval = INT_MIN;
   std::pair<Bitboard, Bitboard> bestMove = {0, 0};

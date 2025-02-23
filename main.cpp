@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "CBoard.h"
 
+using namespace chs;
 
 int main() {
   sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "CHESS negamax", sf::Style::Close);
@@ -97,11 +98,9 @@ int main() {
                 break;
               }
 
-
               // If the move is in legal moves, provide it, if not just continue
               if (brd.isMoveLegal(moveFrom, moveTo))
                 brd.makeMove(moveFrom, moveTo);
-
 
               moveFrom = 0;
             }
@@ -120,7 +119,7 @@ int main() {
 
     window.clear(sf::Color::Black);
 
-    brd.draw(window, moveFrom);
+    brd.draw(window, moveFrom, font);
 
 
     if (!brd.legalMoves(brd.onMovePositions())) {

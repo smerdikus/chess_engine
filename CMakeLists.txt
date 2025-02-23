@@ -12,7 +12,10 @@ include_directories(${SFML_INCLUDE_DIR})
 
 # Add your executable
 add_executable(sfml_chess main.cpp CBoard.cpp CBoard.h
-        CBitboardIterator.h)
+        CBitboardIterator.h
+        BitboardMovement.h
+        EvaluationTables.h
+        EvaluationTables.h)
 
 # Link SFML libraries to your executable
 target_link_libraries(sfml_chess sfml-system sfml-window sfml-graphics sfml-network sfml-audio)

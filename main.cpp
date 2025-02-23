@@ -46,7 +46,6 @@ int main() {
   }
 
 
-
   sf::Text victoryText;
   victoryText.setFont(font);
   victoryText.setCharacterSize(64);
@@ -74,6 +73,8 @@ int main() {
         case sf::Event::KeyPressed:
           if (event.key.code == sf::Keyboard::Escape)
             window.close();
+          if (event.key.code == sf::Keyboard::B)
+            brd.unmakeMove();
           break;
 
         case sf::Event::MouseButtonPressed:
@@ -115,17 +116,17 @@ int main() {
 
 
     if (brd.isWPromotion() | brd.isBPromotion())
-      brd.handlePromotion(CBoard::showPromotionWindow());
+      brd.handlePromotion(CBoard::showPromotionWindow(font));
+
 
     window.clear(sf::Color::Black);
 
-    brd.draw(window, moveFrom, font);
-
-
-    if (!brd.legalMoves(brd.onMovePositions())) {
+    // Test if there are any more moves
+    if (brd.legalMoves(brd.onMovePositions())) {
+      brd.draw(window, moveFrom, font);
+    } else {
       // If white is on turn, and has no moves, black won, negation is otherwise
       window.clear(brd.whiteToMove() ? sf::Color::Black : sf::Color::White);
-
 
       // set the victory string based on the whiteToMove
       victoryText.setString(brd.whiteToMove() ? "Black won" : "White won");

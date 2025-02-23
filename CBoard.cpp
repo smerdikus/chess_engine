@@ -31,7 +31,6 @@ CBoard::CBoard() {
 
   enPassant = 0;
 
-
   onTurn = 1;
 }
 
@@ -82,7 +81,9 @@ bool CBoard::loadTextures(const std::string texturePath[12]) const {
 
   lightSquareColor = sf::Color(240, 248, 255);  // Alice blue
   darkSquareColor = sf::Color(70, 130, 180);    // Steel blue
+
   borderColor = sf::Color(60, 100, 150);        // Deep blue
+
   highlightSrcColor = sf::Color(0, 191, 255);   // Deep sky blue
   highlightDstColor = sf::Color(30, 144, 255);  // Dodger blue
 
@@ -149,20 +150,14 @@ void CBoard::draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font) {
   };
 
   // Draw the pieces
-  posFromBitboard(m_sprites[0], wPawns);
-  posFromBitboard(m_sprites[1], wKing);
-  posFromBitboard(m_sprites[2], wKnights);
-  posFromBitboard(m_sprites[3], wBishops);
-  posFromBitboard(m_sprites[4], wQueens);
-  posFromBitboard(m_sprites[5], wRooks);
+  Bitboard pieces[12] = {
+          wPawns, wKing, wKnights, wBishops, wQueens, wRooks,
+          bPawns, bKing, bKnights, bBishops, bQueens, bRooks
+  };
 
-  posFromBitboard(m_sprites[6], bPawns);
-  posFromBitboard(m_sprites[7], bKing);
-  posFromBitboard(m_sprites[8], bKnights);
-  posFromBitboard(m_sprites[9], bBishops);
-  posFromBitboard(m_sprites[10], bQueens);
-  posFromBitboard(m_sprites[11], bRooks);
-
+  for (size_t i = 0; i < 12; ++i) {
+    posFromBitboard(m_sprites[i], pieces[i]);
+  }
 
   // Drawing the rectangle based on who is winning based on the eval function
   sf::RectangleShape winningRect(sf::Vector2f(4 * TILE + evaluate() * onTurn / 3, 30));
@@ -200,54 +195,10 @@ bool CBoard::blackToMove() const { return onTurn == -1; }
 Bitboard CBoard::empty() const { return ~white() & ~black(); }
 
 
-bool CBoard::isEndgame(int threshold = 15) const {
-  int whiteMaterial = countWMaterial();
-  int blackMaterial = countBMaterial();
-
-  // Consider the game in the endgame if both players have low material
-  return (whiteMaterial <= threshold && blackMaterial <= threshold);
+bool CBoard::isEndgame(int threshold = 12) const {
+  // Return the count of not empty squares
+  return (popcount(~empty()) <= threshold);
 }
-
-int CBoard::countWMaterial() const {
-  int material = 0;
-
-  // Define the material value of each piece
-  const int pawnValue = 1;
-  const int knightValue = 3;
-  const int bishopValue = 3;
-  const int rookValue = 5;
-  const int queenValue = 9;
-
-  material += popcount(wPawns) * pawnValue;
-  material += popcount(wKnights) * knightValue;
-  material += popcount(wBishops) * bishopValue;
-  material += popcount(wRooks) * rookValue;
-  material += popcount(wQueens) * queenValue;
-
-  return material;
-}
-
-
-int CBoard::countBMaterial() const {
-  int material = 0;
-
-  // Define the material value of each piece
-  const int pawnValue = 1;
-  const int knightValue = 3;
-  const int bishopValue = 3;
-  const int rookValue = 5;
-  const int queenValue = 9;
-
-  material += popcount(bPawns) * pawnValue;
-  material += popcount(bKnights) * knightValue;
-  material += popcount(bBishops) * bishopValue;
-  material += popcount(bRooks) * rookValue;
-  material += popcount(bQueens) * queenValue;
-
-
-  return material;
-}
-
 
 bool CBoard::movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo) {
   pieces &= ~moveFrom;  // Clear the source bit
@@ -291,53 +242,6 @@ void CBoard::removeCapturedWhite(Bitboard piece, Bitboard &removedFrom, char &pi
 }
 
 
-/*
- ************************************************************
- *                                                          *
- *                      King movement                       *
- *                                                          *
- ************************************************************
- */
-
-bool CBoard::wcastleRights() const {
-  // White King-side Castling
-  if (!(wKingMoved || wRookMovedKingSide))
-    // Check that the squares between the king and rook are empty and the king is not in check
-    if ((empty() & (1ULL << F1) & (1ULL << G1)) &&
-        wKingSafe(1ULL << E1) && wKingSafe(1ULL << F1) && wKingSafe(1ULL << G1))
-      return true;  // King-side castling possible
-
-
-  // White Queen-side Castling
-  if (!(wKingMoved || wRookMovedQueenSide))
-    if ((empty() & (1ULL << D1) & (1ULL << C1) & (1ULL << B1)) &&
-        wKingSafe(1ULL << E1) && wKingSafe(1ULL << D1) && wKingSafe(1ULL << C1))
-      return true;  // Queen-side castling possible
-
-
-  return false;
-}
-
-bool CBoard::bcastleRights() const {
-
-  // Black King-side Castling
-  if (!(bKingMoved || bRookMovedKingSide))
-    if ((empty() & (1ULL << F8) & (1ULL << G8)) &&
-        bKingSafe(1ULL << E8) && bKingSafe(1ULL << F8) && bKingSafe(1ULL << G8))
-      return true;  // King-side castling possible
-
-
-  // Black Queen-side Castling
-  if (!(bKingMoved || bRookMovedQueenSide))
-    if ((empty() & (1ULL << D8) & (1ULL << C8) & (1ULL << B8)) &&
-        bKingSafe(1ULL << E8) && bKingSafe(1ULL << D8) && bKingSafe(1ULL << C8))
-      return true;  // Queen-side castling possible
-
-
-  return false;
-}
-
-
 Bitboard CBoard::wKingSafe(Bitboard pos) const {
   Bitboard blackAttacks = 0;
 
@@ -369,7 +273,6 @@ Bitboard CBoard::bKingSafe(Bitboard pos) const {
 }
 
 
-// Function to calculate white king's legal moves, including castling
 Bitboard CBoard::wKingMoves(Bitboard pos) const {
   // King can move to empty or enemy-occupied safe squares
   Bitboard safeMoves = wKingSafe(oneAround(pos)) & enemyOrEmpty<true>();
@@ -382,10 +285,10 @@ Bitboard CBoard::wKingMoves(Bitboard pos) const {
   Bitboard queenSide = ((wKingSafe(pos) & wKingSafe(pos << 1) & wKingSafe(pos << 2)) *
                         (empty() & (pos << 1) & (pos << 2) & (pos << 3))) << 2;
 
-  return safeMoves | kingSide | queenSide;
+  return (safeMoves | kingSide | queenSide) & wCastling;
 }
 
-// Function to calculate black king's legal moves, including castling
+
 Bitboard CBoard::bKingMoves(Bitboard pos) const {
   // King can move to empty or enemy-occupied safe squares
   Bitboard safeMoves = bKingSafe(oneAround(pos)) & enemyOrEmpty<false>();
@@ -398,17 +301,8 @@ Bitboard CBoard::bKingMoves(Bitboard pos) const {
   Bitboard queenSide = ((bKingSafe(pos) & bKingSafe(pos << 1) & bKingSafe(pos << 2)) *
                         (empty() & (pos << 1) & (pos << 2) & (pos << 3))) << 2;
 
-
-  return safeMoves | kingSide | queenSide;
+  return (safeMoves | kingSide | queenSide) & bCastling;
 }
-
-/*
- ************************************************************
- *                                                          *
- *                      Move Generator                      *
- *                                                          *
- ************************************************************
- */
 
 
 Bitboard CBoard::pseudoLegalMoves(Bitboard pos) const {
@@ -436,10 +330,9 @@ Bitboard CBoard::legalMoves(Bitboard pos) {
   Bitboard legalMoves = 0;
 
   for (auto moveFrom: CBitboardRange(pos)) {
-
     Bitboard possibleMoves = pseudoLegalMoves(moveFrom);
 
-    // Appending all the moves from possibleMoves that are legal to result
+    // Adding all the moves from possibleMoves that are legal to result
     for (auto moveTo: CBitboardRange(possibleMoves))
       if (isMoveLegal(moveFrom, moveTo))
         legalMoves |= moveTo;
@@ -472,19 +365,8 @@ std::vector<std::pair<Bitboard, Bitboard>> CBoard::generateMoves(Bitboard moveFr
   for (auto moveTo: CBitboardRange(possibleMoves))
     moves.emplace_back(moveFrom, moveTo);
 
-
   return moves;
 }
-
-
-/*
- ************************************************************
- *                                                          *
- *               Move making and Unmaking                   *
- *                                                          *
- ************************************************************
- */
-
 
 
 bool CBoard::movePieceIfValid(Bitboard &pieceSet, Bitboard moveFrom, Bitboard moveTo) {
@@ -494,33 +376,19 @@ bool CBoard::movePieceIfValid(Bitboard &pieceSet, Bitboard moveFrom, Bitboard mo
   return false;
 }
 
-char CBoard::showPromotionWindow() {
-  sf::RenderWindow promotionWindow(sf::VideoMode(400, 100), "Pawn Promotion");
+char CBoard::showPromotionWindow(sf::Font &font) {
+  sf::RenderWindow promotionWindow(sf::VideoMode(150, 100), "Pawn Promotion");
 
-  sf::Font font;
-  if (!font.loadFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
-    std::cerr << "Error loading font\n";
-    std::cout << "font cannot be loaded" << std::endl;
-    return 'Q';  // Default to Queen if font fails to load
-  }
 
   // Creating text objects for promotion options
-  sf::Text queenText("Q - Queen", font, 20);
-  sf::Text rookText("R - Rook", font, 20);
-  sf::Text bishopText("B - Bishop", font, 20);
-  sf::Text knightText("N - Knight", font, 20);
+  std::string texts[4] = {"Q - Queen", "R - Rook", "B - Bishop", "N - Knight"};
 
-  queenText.setPosition(20, 5);
-  rookText.setPosition(20, 25);
-  bishopText.setPosition(20, 45);
-  knightText.setPosition(20, 65);
+  sf::Text text("", font, 20);
 
-  queenText.setFillColor(sf::Color::Black);
-  rookText.setFillColor(sf::Color::Black);
-  bishopText.setFillColor(sf::Color::Black);
-  knightText.setFillColor(sf::Color::Black);
+  text.setPosition(20, 5);
+  text.setFillColor(sf::Color::Black);
 
-  char chosenPiece = 'Q';  // Default promotion to Queen
+  char chosenPiece = '\0';
 
   while (promotionWindow.isOpen()) {
     sf::Event event = sf::Event();
@@ -553,27 +421,28 @@ char CBoard::showPromotionWindow() {
     }
 
     promotionWindow.clear(sf::Color::White);
-    promotionWindow.draw(queenText);
-    promotionWindow.draw(rookText);
-    promotionWindow.draw(bishopText);
-    promotionWindow.draw(knightText);
+    for (int i = 0; i < 4; i++) {
+      text.setString(texts[i]);
+      text.setPosition(sf::Vector2f(20, i * 20 + 5));
+      promotionWindow.draw(text);
+    }
     promotionWindow.display();
   }
+
+  if (chosenPiece == '\0')
+    throw std::out_of_range("Unknown piece to promote: " + std::string(1, chosenPiece));
 
   return chosenPiece;
 }
 
+Bitboard CBoard::isWPromotion() const { return wPawns & RANK_8; }
 
-Bitboard CBoard::isWPromotion() const { return (bPawns | wPawns) & (RANK_8 | RANK_1); }
-
-Bitboard CBoard::isBPromotion() const { return (bPawns | wPawns) & (RANK_8 | RANK_1); }
-
+Bitboard CBoard::isBPromotion() const { return bPawns & RANK_1; }
 
 void CBoard::handlePromotion(char promotedPiece) {
   // No promotion is happening; exit early
   if (!isWPromotion() && !isBPromotion())
     return;
-
 
   // Reference to the appropriate pawn and piece bitboards
   Bitboard &pawns = isWPromotion() ? wPawns : bPawns;
@@ -734,7 +603,6 @@ bool CBoard::unmakeMove() {
     if (lastMove.promotedTo)
       *lastMove.promotedTo &= ~lastMove.moveTo;  // Remove promoted piece from its final square
 
-
     // Restore the pawn to its original position
     pawns |= lastMove.moveFrom;
   }
@@ -756,18 +624,18 @@ bool CBoard::unmakeMove() {
     restoreCapturedPiece(lastMove, opponentPawns, opponentKnights, opponentBishops,
                          opponentRooks, opponentQueens, opponentKing);
 
-
   // Handle en passant
   if (lastMove.wasEnPassant) {
     Bitboard enPassantCapturedPawn = isWhiteMove ? (lastMove.moveTo >> 8) : (lastMove.moveTo << 8);
     movePiece(opponentPawns, 0, enPassantCapturedPawn);
   }
 
-
   // Restore previous game state
   enPassant = lastMove.previousEnPassant;
+
   if (isWhiteMove) wCastling = lastMove.previousCastlingRights;
   else bCastling = lastMove.previousCastlingRights;
+
   onTurn = lastMove.previousOnTurn;
 
   return true;
@@ -783,9 +651,10 @@ bool CBoard::unmakePieceMove(Bitboard &pieceSet, const MoveInfo &lastMove) {
 }
 
 void CBoard::unmakeCastlingMove(Bitboard &rooks, const MoveInfo &lastMove) {
-    // King-side castling
+  // King-side castling
   if (lastMove.moveTo == lastMove.moveFrom << 2)
     movePiece(rooks, lastMove.moveFrom << 1, lastMove.moveFrom << 3);
+
     // Queen-side castling
   else if (lastMove.moveTo == lastMove.moveFrom >> 2)
     movePiece(rooks, lastMove.moveFrom >> 1, lastMove.moveFrom >> 4);
@@ -817,40 +686,22 @@ void CBoard::restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPa
   }
 }
 
-
 Bitboard CBoard::onMovePositions() const { return onTurn == 1 ? white() : black(); }
-
-/*
- ************************************************************
- *                                                          *
- *                 Evaluation Methods                       *
- *                                                          *
- ************************************************************
- */
 
 int CBoard::materialEvaluation() const {
   int materialScore = 0;
 
-  // Piece values (you can tweak these for better performance)
-  constexpr int pawnValue = 100;
-  constexpr int knightValue = 320;
-  constexpr int bishopValue = 330;
-  constexpr int rookValue = 500;
-  constexpr int queenValue = 900;
+  materialScore += popcount(wPawns) * PAWN_VALUE;
+  materialScore += popcount(wKnights) * KNIGHT_VALUE;
+  materialScore += popcount(wBishops) * BISHOP_VALUE;
+  materialScore += popcount(wRooks) * ROOK_VALUE;
+  materialScore += popcount(wQueens) * QUEEN_VALUE;
 
-  // White piece material
-  materialScore += popcount(wPawns) * pawnValue;
-  materialScore += popcount(wKnights) * knightValue;
-  materialScore += popcount(wBishops) * bishopValue;
-  materialScore += popcount(wRooks) * rookValue;
-  materialScore += popcount(wQueens) * queenValue;
-
-  // Black piece material (subtract from white score)
-  materialScore -= popcount(bPawns) * pawnValue;
-  materialScore -= popcount(bKnights) * knightValue;
-  materialScore -= popcount(bBishops) * bishopValue;
-  materialScore -= popcount(bRooks) * rookValue;
-  materialScore -= popcount(bQueens) * queenValue;
+  materialScore -= popcount(bPawns) * PAWN_VALUE;
+  materialScore -= popcount(bKnights) * KNIGHT_VALUE;
+  materialScore -= popcount(bBishops) * BISHOP_VALUE;
+  materialScore -= popcount(bRooks) * ROOK_VALUE;
+  materialScore -= popcount(bQueens) * QUEEN_VALUE;
 
   return materialScore;
 }
@@ -858,7 +709,6 @@ int CBoard::materialEvaluation() const {
 
 int CBoard::positionalEvaluation() const {
   int positionalScore = 0;
-
 
   auto applyPositionalScore = [&positionalScore](const uint64_t pieces, const int *table, int adjustment) {
     int mirrorOffset = (adjustment > 0) ? 0 : 63;
@@ -868,18 +718,13 @@ int CBoard::positionalEvaluation() const {
     }
   };
 
-  applyPositionalScore(wPawns, pawnTable, 1);
-  applyPositionalScore(bPawns, pawnTable, -1);
-  applyPositionalScore(wKnights, knightTable, 1);
-  applyPositionalScore(bKnights, knightTable, -1);
-  applyPositionalScore(wBishops, bishopTable, 1);
-  applyPositionalScore(bBishops, bishopTable, -1);
-  applyPositionalScore(wRooks, rookTable, 1);
-  applyPositionalScore(bRooks, rookTable, -1);
-  applyPositionalScore(wQueens, queenTable, 1);
-  applyPositionalScore(bQueens, queenTable, -1);
-  applyPositionalScore(wKing, kingTable, 1);
-  applyPositionalScore(bKing, kingTable, -1);
+  const uint64_t whitePieces[6] = {wPawns, wKnights, wBishops, wRooks, wQueens, wKing};
+  const uint64_t blackPieces[6] = {bPawns, bKnights, bBishops, bRooks, bQueens, bKing};
+  const int *tables[6] = {pawnTable, knightTable, bishopTable, rookTable, queenTable, kingTable};
+
+  for (int i = 0; i < 6; i++) applyPositionalScore(whitePieces[i], tables[i], 1);
+  for (int i = 0; i < 6; i++) applyPositionalScore(blackPieces[i], tables[i], -1);
+
 
   return positionalScore;
 }
@@ -889,8 +734,8 @@ int CBoard::kingSafetyEvaluation() const {
   int kingSafetyScore = 0;
 
   // Castling bonus
-  kingSafetyScore += 20 * popcount(wKing & wcastleRights());
-  kingSafetyScore -= 20 * popcount(wKing & wcastleRights());
+  kingSafetyScore += 20 * popcount(wCastling);
+  kingSafetyScore -= 20 * popcount(bCastling);
 
   // Exposed king penalty
   kingSafetyScore -= 10 * popcount(oneAround(wKing) & empty());
@@ -923,7 +768,6 @@ int CBoard::pawnStructureEvaluation() const {
   pawnStructureScore += popcount(bDoubled) * 15;
 
 
-
   // === SUPPORTED PAWNS ===
   Bitboard wSupported = wPawns & (((wPawns >> 9) & 0x7F7F7F7F7F7F7F7F) | ((wPawns >> 7) & 0xFEFEFEFEFEFEFEFE));
   Bitboard bSupported = bPawns & (((bPawns << 9) & 0xFEFEFEFEFEFEFEFE) | ((bPawns << 7) & 0x7F7F7F7F7F7F7F7F));
@@ -944,7 +788,6 @@ int CBoard::pawnStructureEvaluation() const {
 
   pawnStructureScore -= popcount(wBackward) * 15; // Penalty for weak pawns
   pawnStructureScore += popcount(bBackward) * 15;
-
 
   return pawnStructureScore;
 }
@@ -996,15 +839,6 @@ int CBoard::evaluate() {
 }
 
 int CBoard::popcount(Bitboard num) { return __builtin_popcountll(num); }
-
-
-/*
- ************************************************************
- *                                                          *
- *                        AI Methods                        *
- *                                                          *
- ************************************************************
- */
 
 
 std::pair<int, std::pair<Bitboard, Bitboard>> CBoard::negamax(int depth) {

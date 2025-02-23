@@ -11,6 +11,7 @@
 #include <bitset>
 #include <stack>
 #include <cstdint>
+#include <filesystem>
 #include "BitboardMovement.h"
 #include "CBitboardIterator.h"
 #include "EvaluationTables.h"
@@ -156,7 +157,7 @@ namespace chs {
 
     void draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font);
 
-    static char showPromotionWindow();
+    static char showPromotionWindow(sf::Font &font);
 
     inline Bitboard isWPromotion() const;
 
@@ -192,9 +193,9 @@ namespace chs {
 
     bool isEndgame(int threshold) const;
 
-    int countWMaterial() const;
+    int evalWMaterial() const;
 
-    int countBMaterial() const;
+    int evalBMaterial() const;
 
     int materialEvaluation() const;
 

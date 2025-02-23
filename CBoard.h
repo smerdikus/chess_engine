@@ -24,7 +24,6 @@ namespace chs {
 #define BORDER  1
 
 
-
   class CBoard {
   private:
 
@@ -40,11 +39,6 @@ namespace chs {
       Bitboard wasPromotion;
       Bitboard *promotedTo;
     };
-
-
-    // Create piece bitboards
-    Bitboard wPawns, wKnights, wBishops, wRooks, wQueens, wKing;
-    Bitboard bPawns, bKnights, bBishops, bRooks, bQueens, bKing;
 
     Bitboard wCastling;
     Bitboard bCastling;
@@ -83,10 +77,6 @@ namespace chs {
     void removeCapturedBlack(Bitboard moveTo, Bitboard &removedFrom, char &pieceType);
 
 
-    bool wcastleRights() const;
-
-    bool bcastleRights() const;
-
     Bitboard wKingSafe(Bitboard pos) const;
 
     Bitboard bKingSafe(Bitboard pos) const;
@@ -108,8 +98,8 @@ namespace chs {
 
     static bool handleRookMove(Bitboard &rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard &castlingRights);
 
-    bool
-    handleKingMove(Bitboard &king, Bitboard &rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard &castlingRights) const;
+    bool handleKingMove(Bitboard &king, Bitboard &rooks, Bitboard moveFrom, Bitboard moveTo,
+                        Bitboard &castlingRights) const;
 
     bool handlePawnMove(Bitboard &pawns, Bitboard moveFrom, Bitboard moveTo, bool &enPassantSet, MoveInfo &moveInfo);
 
@@ -122,7 +112,6 @@ namespace chs {
     static void restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPawns, Bitboard &opponentKnights,
                                      Bitboard &opponentBishops, Bitboard &opponentRooks, Bitboard &opponentQueens,
                                      Bitboard &opponentKing);
-
 
   public:
     struct Board {
@@ -138,6 +127,9 @@ namespace chs {
       int onTurn;
     };
 
+    Bitboard wPawns, wKnights, wBishops, wRooks, wQueens, wKing;
+    Bitboard bPawns, bKnights, bBishops, bRooks, bQueens, bKing;
+
     explicit CBoard();
 
     void initPos(Board board);
@@ -145,8 +137,6 @@ namespace chs {
     bool loadTextures(const std::string texturePath[12]) const;
 
     void draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font);
-
-    static char showPromotionWindow(sf::Font &font);
 
     inline Bitboard isWPromotion() const;
 
@@ -157,6 +147,8 @@ namespace chs {
     inline bool whiteToMove() const;
 
     inline bool blackToMove() const;
+
+    Bitboard onMovePositions() const;
 
     void handleCapture(Bitboard moveTo, MoveInfo &moveInfo);
 
@@ -176,15 +168,9 @@ namespace chs {
 
     bool isMoveLegal(Bitboard from, Bitboard to);
 
-    Bitboard onMovePositions() const;
-
     std::vector<std::pair<Bitboard, Bitboard>> generateMoves(Bitboard moveFrom);
 
     bool isEndgame(int threshold) const;
-
-    int evalWMaterial() const;
-
-    int evalBMaterial() const;
 
     int materialEvaluation() const;
 
@@ -201,6 +187,67 @@ namespace chs {
     static inline int popcount(Bitboard num);
 
     std::pair<int, std::pair<Bitboard, Bitboard>> negamax(int depth);
+
+
+
+
+    inline static char showPromotionWindow(sf::Font &font) {
+      sf::RenderWindow promotionWindow(sf::VideoMode(150, 100), "Pawn Promotion");
+
+      // Creating text objects for promotion options
+      std::string texts[4] = {"Q - Queen", "R - Rook", "B - Bishop", "N - Knight"};
+
+      sf::Text text("", font, 20);
+
+      text.setPosition(20, 5);
+      text.setFillColor(sf::Color::Black);
+
+      char chosenPiece = '\0';
+
+      while (promotionWindow.isOpen()) {
+        sf::Event event = sf::Event();
+        while (promotionWindow.pollEvent(event)) {
+          if (event.type == sf::Event::Closed)
+            promotionWindow.close();
+
+          if (event.type == sf::Event::KeyPressed) {
+            switch (event.key.code) {
+              case sf::Keyboard::Q:
+                chosenPiece = 'Q';
+                promotionWindow.close();
+                break;
+              case sf::Keyboard::R:
+                chosenPiece = 'R';
+                promotionWindow.close();
+                break;
+              case sf::Keyboard::B:
+                chosenPiece = 'B';
+                promotionWindow.close();
+                break;
+              case sf::Keyboard::N:
+                chosenPiece = 'N';
+                promotionWindow.close();
+                break;
+              default:
+                break;
+            }
+          }
+        }
+
+        promotionWindow.clear(sf::Color::White);
+        for (int i = 0; i < 4; i++) {
+          text.setString(texts[i]);
+          text.setPosition(sf::Vector2f(20, i * 20 + 5));
+          promotionWindow.draw(text);
+        }
+        promotionWindow.display();
+      }
+
+      if (chosenPiece == '\0')
+        throw std::out_of_range("Unknown piece to promote: " + std::string(1, chosenPiece));
+
+      return chosenPiece;
+    }
   };
 
 }

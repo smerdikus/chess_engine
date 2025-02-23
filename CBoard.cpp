@@ -26,8 +26,8 @@ CBoard::CBoard() {
   wQueens = 0x8ULL;
   bQueens = 0x800000000000000ULL;
 
-  wCastling = 0x44ULL;
-  bCastling = 0x4400000000000000ULL;
+  wCastling = 0b00100010ULL;
+  bCastling = wCastling << 48;
 
   enPassant = 0;
 
@@ -188,6 +188,7 @@ bool CBoard::blackToMove() const { return onTurn == -1; }
 
 Bitboard CBoard::empty() const { return ~white() & ~black(); }
 
+Bitboard CBoard::onMovePositions() const { return onTurn == 1 ? white() : black(); }
 
 bool CBoard::isEndgame(int threshold = 12) const {
   // Return the count of not empty squares
@@ -271,15 +272,23 @@ Bitboard CBoard::wKingMoves(Bitboard pos) const {
   // King can move to empty or enemy-occupied safe squares
   Bitboard safeMoves = wKingSafe(oneAround(pos)) & enemyOrEmpty<true>();
 
+  Bitboard path = pos >> 1 | pos >> 2;
+  Bitboard kingSide = 0;
+
   // King-side castling
-  Bitboard kingSide = ((wKingSafe(pos) & wKingSafe(pos >> 1) & wKingSafe(pos >> 2)) *
-                       (empty() & (pos >> 1) & (pos >> 2))) >> 2;
+  if (wKingSafe(path) && ((empty() & path) == path))
+    kingSide = pos >> 2 & wCastling;
+
+
+  path = pos << 1 | pos << 2 | pos << 3 | pos << 4;
+  Bitboard queenSide = 0;
 
   // Queen-side castling
-  Bitboard queenSide = ((wKingSafe(pos) & wKingSafe(pos << 1) & wKingSafe(pos << 2)) *
-                        (empty() & (pos << 1) & (pos << 2) & (pos << 3))) << 2;
+  if (wKingSafe(path) && ((empty() & path) == path))
+    kingSide = pos << 3 & wCastling;
 
-  return (safeMoves | kingSide | queenSide) & wCastling;
+
+  return safeMoves | kingSide | queenSide;
 }
 
 
@@ -287,15 +296,23 @@ Bitboard CBoard::bKingMoves(Bitboard pos) const {
   // King can move to empty or enemy-occupied safe squares
   Bitboard safeMoves = bKingSafe(oneAround(pos)) & enemyOrEmpty<false>();
 
+  Bitboard path = pos >> 1 | pos >> 2;
+  Bitboard kingSide = 0;
+
   // King-side castling
-  Bitboard kingSide = ((bKingSafe(pos) & bKingSafe(pos >> 1) & bKingSafe(pos >> 2)) *
-                       (empty() & (pos >> 1) & (pos >> 2))) >> 2;
+  if (wKingSafe(path) && ((empty() & path) == path))
+    kingSide = pos >> 2 & bCastling;
+
+
+  path = pos << 1 | pos << 2 | pos << 3 | pos << 4;
+  Bitboard queenSide = 0;
 
   // Queen-side castling
-  Bitboard queenSide = ((bKingSafe(pos) & bKingSafe(pos << 1) & bKingSafe(pos << 2)) *
-                        (empty() & (pos << 1) & (pos << 2) & (pos << 3))) << 2;
+  if (wKingSafe(path) && ((empty() & path) == path))
+    kingSide = pos << 3 & bCastling;
 
-  return (safeMoves | kingSide | queenSide) & bCastling;
+
+  return safeMoves | (kingSide | queenSide) & bCastling;
 }
 
 
@@ -368,65 +385,6 @@ bool CBoard::movePieceIfValid(Bitboard &pieceSet, Bitboard moveFrom, Bitboard mo
     return movePiece(pieceSet, moveFrom, moveTo);
 
   return false;
-}
-
-char CBoard::showPromotionWindow(sf::Font &font) {
-  sf::RenderWindow promotionWindow(sf::VideoMode(150, 100), "Pawn Promotion");
-
-
-  // Creating text objects for promotion options
-  std::string texts[4] = {"Q - Queen", "R - Rook", "B - Bishop", "N - Knight"};
-
-  sf::Text text("", font, 20);
-
-  text.setPosition(20, 5);
-  text.setFillColor(sf::Color::Black);
-
-  char chosenPiece = '\0';
-
-  while (promotionWindow.isOpen()) {
-    sf::Event event = sf::Event();
-    while (promotionWindow.pollEvent(event)) {
-      if (event.type == sf::Event::Closed)
-        promotionWindow.close();
-
-      if (event.type == sf::Event::KeyPressed) {
-        switch (event.key.code) {
-          case sf::Keyboard::Q:
-            chosenPiece = 'Q';
-            promotionWindow.close();
-            break;
-          case sf::Keyboard::R:
-            chosenPiece = 'R';
-            promotionWindow.close();
-            break;
-          case sf::Keyboard::B:
-            chosenPiece = 'B';
-            promotionWindow.close();
-            break;
-          case sf::Keyboard::N:
-            chosenPiece = 'N';
-            promotionWindow.close();
-            break;
-          default:
-            break;
-        }
-      }
-    }
-
-    promotionWindow.clear(sf::Color::White);
-    for (int i = 0; i < 4; i++) {
-      text.setString(texts[i]);
-      text.setPosition(sf::Vector2f(20, i * 20 + 5));
-      promotionWindow.draw(text);
-    }
-    promotionWindow.display();
-  }
-
-  if (chosenPiece == '\0')
-    throw std::out_of_range("Unknown piece to promote: " + std::string(1, chosenPiece));
-
-  return chosenPiece;
 }
 
 Bitboard CBoard::isWPromotion() const { return wPawns & RANK_8; }
@@ -511,10 +469,10 @@ bool CBoard::handleKingMove(Bitboard &king, Bitboard &rooks, Bitboard moveFrom, 
 
   // Handle castling
   if (king & castlingRights) {
-    Bitboard rookFrom = (moveTo & (whiteToMove() ? (1ULL << 2) : (1ULL << 58))) ? 1ULL : (whiteToMove() ? (1ULL << 7)
-                                                                                                        : (1ULL << 63));
-    Bitboard rookTo = (rookFrom & 1ULL) ? (whiteToMove() ? (1ULL << 3) : (1ULL << 59)) : (whiteToMove() ? (1ULL << 5)
-                                                                                                        : (1ULL << 61));
+    Bitboard rookFrom = (moveTo & (whiteToMove() ? (1ULL << 2) : (1ULL << 58))) ? 1ULL :
+                        (whiteToMove() ? (1ULL << 7) : (1ULL << 63));
+    Bitboard rookTo = (rookFrom & 1ULL) ? (whiteToMove() ? (1ULL << 3) : (1ULL << 59)) :
+                      (whiteToMove() ? (1ULL << 5) : (1ULL << 61));
     movePiece(rooks, rookFrom, rookTo);
   }
 
@@ -658,6 +616,7 @@ void CBoard::unmakeCastlingMove(Bitboard &rooks, const MoveInfo &lastMove) {
 void CBoard::restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPawns, Bitboard &opponentKnights,
                                   Bitboard &opponentBishops, Bitboard &opponentRooks, Bitboard &opponentQueens,
                                   Bitboard &opponentKing) {
+
   switch (lastMove.capturedPieceType) {
     case 'P':
       movePiece(opponentPawns, 0, lastMove.capturedPiece);
@@ -680,7 +639,6 @@ void CBoard::restoreCapturedPiece(const MoveInfo &lastMove, Bitboard &opponentPa
   }
 }
 
-Bitboard CBoard::onMovePositions() const { return onTurn == 1 ? white() : black(); }
 
 int CBoard::materialEvaluation() const {
   int materialScore = 0;

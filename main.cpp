@@ -85,6 +85,7 @@ int main() {
           if (event.mouseButton.button == sf::Mouse::Left) {
             // Here we need to get the index of the piece we clicked
             int index = (mouseX / TILE) + ((HEIGHT - 30 - mouseY) / TILE) * 8;
+            std::cout << index << std::endl;
             Bitboard currentPos = 1ULL << index;
 
             if (moveFrom == 0) {
@@ -100,8 +101,12 @@ int main() {
               }
 
               // If the move is in legal moves, provide it, if not just continue
-              if (brd.isMoveLegal(moveFrom, moveTo))
+              if (brd.isMoveLegal(moveFrom, moveTo)) {
                 brd.makeMove(moveFrom, moveTo);
+
+                auto [value, move] = brd.negamax(2);
+                brd.makeMove(move.first, move.second);
+              }
 
               moveFrom = 0;
             }

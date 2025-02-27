@@ -14,14 +14,15 @@
 #include <filesystem>
 #include "BitboardMovement.h"
 #include "CBitboardIterator.h"
-#include "EvaluationTables.h"
+#include "ChessMacros.h"
+#include "Evaluation.h"
 
 namespace chs {
 
-#define TILE    70
-#define WIDTH   (8 * TILE) // 8 because We have 8 rectangles here
-#define HEIGHT  WIDTH + 30
-#define BORDER  1
+  constexpr int TILE = 100;
+  constexpr int WIDTH = (8 * TILE); // 8 because We have 8 rectangles here
+  constexpr int HEIGHT = WIDTH + 30;
+  constexpr int BORDER = 1;
 
 
   class CBoard {
@@ -39,22 +40,6 @@ namespace chs {
       Bitboard wasPromotion;
       Bitboard *promotedTo;
     };
-
-    Bitboard wCastling;
-    Bitboard bCastling;
-
-    Bitboard enPassant;
-
-    bool wKingMoved = false;
-    bool bKingMoved = false;
-
-    bool wRookMovedKingSide = false;
-    bool bRookMovedKingSide = false;
-
-    bool wRookMovedQueenSide = false;
-    bool bRookMovedQueenSide = false;
-
-    int onTurn;
 
     std::stack<MoveInfo> m_moveList;
 
@@ -77,24 +62,12 @@ namespace chs {
     void removeCapturedBlack(Bitboard moveTo, Bitboard &removedFrom, char &pieceType);
 
 
-    Bitboard wKingSafe(Bitboard pos) const;
-
-    Bitboard bKingSafe(Bitboard pos) const;
-
     Bitboard wKingMoves(Bitboard pos) const;
 
     Bitboard bKingMoves(Bitboard pos) const;
 
 
-    static bool movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo);
-
-    template<bool isWhite>
-    constexpr Bitboard enemyOrEmpty() const {
-      if constexpr (isWhite)
-        return ~white();
-      return ~black();
-    }
-
+    inline static bool movePiece(Bitboard &pieces, Bitboard moveFrom, Bitboard moveTo);
 
     static bool handleRookMove(Bitboard &rooks, Bitboard moveFrom, Bitboard moveTo, Bitboard &castlingRights);
 
@@ -114,21 +87,7 @@ namespace chs {
                                      Bitboard &opponentKing);
 
   public:
-    struct Board {
-      Bitboard wKing, bKing;
-      Bitboard wPawns, bPawns;
-      Bitboard wKnights, bKnights;
-      Bitboard wBishops, bBishops;
-      Bitboard wRooks, bRooks;
-      Bitboard wQueens, bQueens;
-
-      Bitboard wCastling, bCastling;
-      Bitboard enPassant;
-      int onTurn;
-    };
-
-    Bitboard wPawns, wKnights, wBishops, wRooks, wQueens, wKing;
-    Bitboard bPawns, bKnights, bBishops, bRooks, bQueens, bKing;
+    Board m_brd;
 
     explicit CBoard();
 
@@ -138,25 +97,19 @@ namespace chs {
 
     void draw(sf::RenderWindow &window, Bitboard moveFrom, sf::Font &font);
 
+    Bitboard onMovePositions() const;
+
     inline Bitboard isWPromotion() const;
 
     inline Bitboard isBPromotion() const;
 
+    static Bitboard wKingSafe(Board brd, Bitboard pos);
+
+    static Bitboard bKingSafe(Board brd, Bitboard pos);
+
     void handlePromotion(char promotionPiece);
 
-    inline bool whiteToMove() const;
-
-    inline bool blackToMove() const;
-
-    Bitboard onMovePositions() const;
-
     void handleCapture(Bitboard moveTo, MoveInfo &moveInfo);
-
-    inline Bitboard white() const;
-
-    inline Bitboard black() const;
-
-    inline Bitboard empty() const;
 
     bool makeMove(Bitboard moveFrom, Bitboard moveTo);
 
@@ -170,25 +123,25 @@ namespace chs {
 
     std::vector<std::pair<Bitboard, Bitboard>> generateMoves(Bitboard moveFrom);
 
-    bool isEndgame(int threshold) const;
+//    int mobilityEvaluation(Board brd);
 
-    int materialEvaluation() const;
-
-    int positionalEvaluation() const;
-
-    int kingSafetyEvaluation() const;
-
-    int pawnStructureEvaluation() const;
-
-    int mobilityEvaluation();
-
-    int evaluate();
-
-    static inline int popcount(Bitboard num);
+    int evaluate() const;
 
     std::pair<int, std::pair<Bitboard, Bitboard>> negamax(int depth);
 
 
+    static inline Board getInitBoard() {
+      return {
+              0x10ULL, 0x1000000000000000ULL,
+              0xFF00ULL, 0xFF000000000000ULL,
+              0x42ULL, 0x4200000000000000ULL,
+              0x24ULL, 0x2400000000000000ULL,
+              0x81ULL, 0x8100000000000000ULL,
+              0x8ULL, 0x800000000000000ULL,
+              0b00100010ULL, 0b00100010ULL << 48,
+              0, 1
+      };
+    }
 
 
     inline static char showPromotionWindow(sf::Font &font) {

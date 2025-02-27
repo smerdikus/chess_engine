@@ -1,5 +1,6 @@
 // Link to fonts            "/System/Library/Fonts/Supplemental/Arial.ttf"
 #include <SFML/Graphics.hpp>
+
 #include "CBoard.h"
 
 using namespace chs;
@@ -78,10 +79,6 @@ int main() {
           break;
 
         case sf::Event::MouseButtonPressed:
-          if (event.mouseButton.button == sf::Mouse::Right)
-            brd.unmakeMove();
-
-
           if (event.mouseButton.button == sf::Mouse::Left) {
             // Here we need to get the index of the piece we clicked
             int index = (mouseX / TILE) + ((HEIGHT - 30 - mouseY) / TILE) * 8;
@@ -104,7 +101,11 @@ int main() {
               if (brd.isMoveLegal(moveFrom, moveTo)) {
                 brd.makeMove(moveFrom, moveTo);
 
-                auto [value, move] = brd.negamax(2);
+                std::pair<Bitboard, Bitboard> move;
+                if (isEndgame(brd.m_brd))
+                  move = brd.negamax(6).second;
+                else
+                  move = brd.negamax(3).second;
                 brd.makeMove(move.first, move.second);
               }
 
@@ -119,7 +120,6 @@ int main() {
     }
 
 
-
     if (brd.isWPromotion() | brd.isBPromotion())
       brd.handlePromotion(CBoard::showPromotionWindow(font));
 
@@ -131,10 +131,10 @@ int main() {
       brd.draw(window, moveFrom, font);
     } else {
       // If white is on turn, and has no moves, black won, negation is otherwise
-      window.clear(brd.whiteToMove() ? sf::Color::Black : sf::Color::White);
+      window.clear(brd.m_brd.whiteToMove() ? sf::Color::Black : sf::Color::White);
 
       // set the victory string based on the whiteToMove
-      victoryText.setString(brd.whiteToMove() ? "Black won" : "White won");
+      victoryText.setString(brd.m_brd.whiteToMove() ? "Black won" : "White won");
 
       sf::FloatRect textRect = victoryText.getLocalBounds();
       victoryText.setPosition(sf::Vector2f((WIDTH - textRect.width) / 2., (HEIGHT - 100 - textRect.height) / 2.));

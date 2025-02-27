@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <iterator>
-#include "EvaluationTables.h"
+#include "ChessMacros.h"
 
 namespace chs {
 

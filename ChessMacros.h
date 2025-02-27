@@ -2,14 +2,47 @@
 // Created by Petr Smerda on 23.02.2025.
 //
 
-#ifndef SFML_CHESS_EVALUATIONTABLES_H
-#define SFML_CHESS_EVALUATIONTABLES_H
+#ifndef SFML_CHESS_CHESSMACROS_H
+#define SFML_CHESS_CHESSMACROS_H
 
 #include <cstdlib>
 
 namespace chs{
 
   typedef uint64_t Bitboard;
+
+  struct Board {
+    Bitboard wKing, bKing;
+    Bitboard wPawns, bPawns;
+    Bitboard wKnights, bKnights;
+    Bitboard wBishops, bBishops;
+    Bitboard wRooks, bRooks;
+    Bitboard wQueens, bQueens;
+
+    Bitboard wCastling, bCastling;
+    Bitboard enPassant;
+    int onTurn;
+
+    Bitboard white() const { return wPawns | wKnights | wBishops | wRooks | wQueens | wKing; }
+
+    Bitboard black() const { return bPawns | bKnights | bBishops | bRooks | bQueens | bKing; }
+
+    bool whiteToMove() const { return onTurn == 1; }
+
+    bool blackToMove() const { return onTurn == -1; }
+
+    Bitboard empty() const { return ~white() & ~black(); }
+
+    Bitboard onMovePositions() const { return onTurn == 1 ? white() : black(); }
+
+
+    template<bool isWhite>
+    constexpr Bitboard enemyOrEmpty() const {
+      if constexpr (isWhite)
+        return ~white();
+      return ~black();
+    }
+  };
 
   constexpr Bitboard RANK_1 = 0x00000000000000FF;
   constexpr Bitboard RANK_2 = 0x000000000000FF00;
@@ -29,14 +62,14 @@ namespace chs{
   constexpr Bitboard FILE_G = 0x4040404040404040;
   constexpr Bitboard FILE_H = 0x8080808080808080;
 
-  constexpr Bitboard NOT_FILE_A = ~0x0101010101010101;
-  constexpr Bitboard NOT_FILE_B = ~0x0202020202020202;
-  constexpr Bitboard NOT_FILE_C = ~0x0404040404040404;
-  constexpr Bitboard NOT_FILE_D = ~0x0808080808080808;
-  constexpr Bitboard NOT_FILE_E = ~0x1010101010101010;
-  constexpr Bitboard NOT_FILE_F = ~0x2020202020202020;
-  constexpr Bitboard NOT_FILE_G = ~0x4040404040404040;
-  constexpr Bitboard NOT_FILE_H = ~0x8080808080808080;
+  constexpr Bitboard NOT_FILE_A = ~FILE_A;
+  constexpr Bitboard NOT_FILE_B = ~FILE_B;
+  constexpr Bitboard NOT_FILE_C = ~FILE_C;
+  constexpr Bitboard NOT_FILE_D = ~FILE_D;
+  constexpr Bitboard NOT_FILE_E = ~FILE_E;
+  constexpr Bitboard NOT_FILE_F = ~FILE_F;
+  constexpr Bitboard NOT_FILE_G = ~FILE_G;
+  constexpr Bitboard NOT_FILE_H = ~FILE_H;
 
   constexpr Bitboard A1 = 1ULL << 0;
   constexpr Bitboard B1 = 1ULL << 1;
@@ -117,7 +150,7 @@ namespace chs{
   constexpr int BISHOP_VALUE = 330;
   constexpr int ROOK_VALUE = 500;
   constexpr int QUEEN_VALUE = 900;
-  constexpr int KING_VALUE = 20000;
+  constexpr int KING_VALUE = 999999999;
 
   constexpr int pawnTable[64] = {
           0, 0, 0, 0, 0, 0, 0, 0,
@@ -197,4 +230,4 @@ namespace chs{
   };
 }
 
-#endif //SFML_CHESS_EVALUATIONTABLES_H
+#endif //SFML_CHESS_CHESSMACROS_H

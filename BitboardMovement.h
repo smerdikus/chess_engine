@@ -9,7 +9,7 @@
 #include <bitset>
 #include <stack>
 #include <cstdint>
-#include "EvaluationTables.h"
+#include "ChessMacros.h"
 #include "CBitboardIterator.h"
 
 

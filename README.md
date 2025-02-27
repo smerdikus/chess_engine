@@ -45,7 +45,7 @@ This chess engine uses bitboards for efficient board representation and implemen
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/yourusername/chess-engine.git
+   git clone https://github.com/smerdikus/chess_engine.git
    cd chess-engine
    ```
 

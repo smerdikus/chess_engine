@@ -46,7 +46,7 @@ This chess engine uses bitboards for efficient board representation and implemen
 
    ```sh
    git clone https://github.com/smerdikus/chess_engine.git
-   cd chess-engine
+   cd chess_engine
    ```
 
 2. Use the install script:

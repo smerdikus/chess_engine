@@ -664,8 +664,6 @@ namespace chs {
     if (moves.empty())
       return {maxEval, {0, 0}};
 
-    std::cout << moves.size() << std::endl;
-
     for (const auto &move: moves) {
       makeMove(move.first, move.second);
       int eval = -negamax(depth - 1).first;

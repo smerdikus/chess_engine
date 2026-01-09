@@ -5,6 +5,29 @@
 
 using namespace chs;
 
+namespace {
+  int countPieces(const Board &brd) {
+    return popcount(brd.white() | brd.black());
+  }
+
+  int chooseSearchDepth(const Board &brd) {
+    int pieces = countPieces(brd);
+    if (pieces >= 28) return 3;
+    if (pieces >= 20) return 4;
+    if (pieces >= 14) return 5;
+    if (pieces >= 10) return 6;
+    return 7;
+  }
+
+  std::string squareName(Bitboard bb) {
+    if (!bb) return "--";
+    int index = __builtin_ctzll(bb);
+    char file = static_cast<char>('a' + (index % 8));
+    char rank = static_cast<char>('1' + (index / 8));
+    return std::string{file, rank};
+  }
+}
+
 int main() {
 #if SFML_VERSION_MAJOR >= 3
   sf::RenderWindow window(sf::VideoMode(sf::Vector2u(WIDTH, HEIGHT)), "CHESS negamax", sf::Style::Close);
@@ -42,6 +65,8 @@ int main() {
 
 
   Bitboard moveFrom = 0;
+  int lastSearchDepth = chooseSearchDepth(brd.m_brd);
+  int lastSearchPieces = countPieces(brd.m_brd);
 
 
   sf::Font font;
@@ -65,6 +90,15 @@ int main() {
 
   victoryText.setFillColor(sf::Color::Red);
   victoryText.setStyle(sf::Text::Bold);
+
+#if SFML_VERSION_MAJOR >= 3
+  sf::Text depthText(font, "", 16);
+#else
+  sf::Text depthText;
+  depthText.setFont(font);
+  depthText.setCharacterSize(16);
+#endif
+  depthText.setFillColor(sf::Color(210, 210, 230, 255));
 
 
 
@@ -94,7 +128,6 @@ int main() {
         if (mouseEvent->button == sf::Mouse::Button::Left) {
           // Here we need to get the index of the piece we clicked
           int index = (mouseX / TILE) + ((HEIGHT - 30 - mouseY) / TILE) * 8;
-          std::cout << index << std::endl;
           Bitboard currentPos = 1ULL << index;
 
           if (moveFrom == 0) {
@@ -113,12 +146,18 @@ int main() {
             if (brd.isMoveLegal(moveFrom, moveTo)) {
               brd.makeMove(moveFrom, moveTo);
 
-              std::pair<Bitboard, Bitboard> move;
-              if (isEndgame(brd.m_brd))
-                move = brd.negamax(6).second;
-              else
-                move = brd.negamax(3).second;
-              brd.makeMove(move.first, move.second);
+              lastSearchPieces = countPieces(brd.m_brd);
+              lastSearchDepth = chooseSearchDepth(brd.m_brd);
+              std::cout << "// ai search depth=" << lastSearchDepth
+                        << " pieces=" << lastSearchPieces << std::endl;
+
+              auto result = brd.negamax(lastSearchDepth);
+              std::cout << "// ai move " << squareName(result.second.first)
+                        << " -> " << squareName(result.second.second)
+                        << " eval=" << result.first << std::endl;
+
+              if (result.second.first != 0 && result.second.second != 0)
+                brd.makeMove(result.second.first, result.second.second);
             }
 
             moveFrom = 0;
@@ -146,7 +185,6 @@ int main() {
           if (event.mouseButton.button == sf::Mouse::Left) {
             // Here we need to get the index of the piece we clicked
             int index = (mouseX / TILE) + ((HEIGHT - 30 - mouseY) / TILE) * 8;
-            std::cout << index << std::endl;
             Bitboard currentPos = 1ULL << index;
 
             if (moveFrom == 0) {
@@ -165,12 +203,18 @@ int main() {
               if (brd.isMoveLegal(moveFrom, moveTo)) {
                 brd.makeMove(moveFrom, moveTo);
 
-                std::pair<Bitboard, Bitboard> move;
-                if (isEndgame(brd.m_brd))
-                  move = brd.negamax(6).second;
-                else
-                  move = brd.negamax(3).second;
-                brd.makeMove(move.first, move.second);
+                lastSearchPieces = countPieces(brd.m_brd);
+                lastSearchDepth = chooseSearchDepth(brd.m_brd);
+                std::cout << "// ai search depth=" << lastSearchDepth
+                          << " pieces=" << lastSearchPieces << std::endl;
+
+                auto result = brd.negamax(lastSearchDepth);
+                std::cout << "// ai move " << squareName(result.second.first)
+                          << " -> " << squareName(result.second.second)
+                          << " eval=" << result.first << std::endl;
+
+                if (result.second.first != 0 && result.second.second != 0)
+                  brd.makeMove(result.second.first, result.second.second);
               }
 
               moveFrom = 0;
@@ -194,6 +238,10 @@ int main() {
     // Test if there are any more moves
     if (brd.legalMoves(brd.onMovePositions())) {
       brd.draw(window, moveFrom, font);
+      depthText.setString("AI depth: " + std::to_string(lastSearchDepth) +
+                          "  Pieces: " + std::to_string(lastSearchPieces));
+      depthText.setPosition(sf::Vector2f(10.f, static_cast<float>(TILE * 8 + 6)));
+      window.draw(depthText);
     } else {
       // If white is on turn, and has no moves, black won, negation is otherwise
       window.clear(brd.m_brd.whiteToMove() ? sf::Color::Black : sf::Color::White);

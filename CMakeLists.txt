@@ -5,17 +5,23 @@ project(sfml_chess)
 set(CMAKE_CXX_STANDARD 20)
 
 # Find SFML with the necessary components
-find_package(SFML REQUIRED COMPONENTS system window graphics network audio)
-
-# Optionally include SFML headers (only if you need them for some reason)
-include_directories(${SFML_INCLUDE_DIR})
+find_package(SFML 3 QUIET COMPONENTS Graphics Window System)
+if (SFML_FOUND)
+  set(SFML_TARGETS SFML::Graphics SFML::Window SFML::System)
+else()
+  find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
+  set(SFML_TARGETS sfml-graphics sfml-window sfml-system)
+endif()
 
 # Add your executable
-add_executable(sfml_chess main.cpp CBoard.cpp CBoard.h
+add_executable(sfml_chess
+        main.cpp
+        CBoard.cpp
+        Evaluation.cpp
+        CBoard.h
         CBitboardIterator.h
         BitboardMovement.h
-        EvaluationTables.h
-        EvaluationTables.h)
+        Evaluation.h)
 
 # Link SFML libraries to your executable
-target_link_libraries(sfml_chess sfml-system sfml-window sfml-graphics sfml-network sfml-audio)
+target_link_libraries(sfml_chess PRIVATE ${SFML_TARGETS})

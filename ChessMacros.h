@@ -6,6 +6,7 @@
 #define SFML_CHESS_CHESSMACROS_H
 
 #include <cstdlib>
+#include <cstdint>
 
 namespace chs{
 

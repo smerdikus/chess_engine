@@ -10,6 +10,11 @@
 #include <iostream>
 #include <bitset>
 #include <stack>
+#include <vector>
+#include <utility>
+#include <string>
+#include <array>
+#include <optional>
 #include <cstdint>
 #include <filesystem>
 #include "BitboardMovement.h"
@@ -37,7 +42,7 @@ namespace chs {
       int previousOnTurn;
       bool wasEnPassant;
       char capturedPieceType; // Store type of captured piece ('P', 'N', 'B', 'R', 'Q', 'K')
-      Bitboard wasPromotion;
+      bool wasPromotion;
       Bitboard *promotedTo;
     };
 
@@ -51,8 +56,8 @@ namespace chs {
     mutable sf::Color highlightDstColor; // Just for drawing -> mutable
 
     // Create an array to store sprites
-    mutable sf::Sprite m_sprites[12];     // Just for drawing -> mutable
-    mutable sf::Texture m_textures[12];     // Just for drawing -> mutable
+    mutable std::array<std::optional<sf::Sprite>, 12> m_sprites; // Just for drawing -> mutable
+    mutable std::array<sf::Texture, 12> m_textures;     // Just for drawing -> mutable
     mutable sf::RectangleShape m_rectangle; // Just for drawing -> mutable
 
 
@@ -99,9 +104,9 @@ namespace chs {
 
     Bitboard onMovePositions() const;
 
-    inline Bitboard isWPromotion() const;
+    Bitboard isWPromotion() const;
 
-    inline Bitboard isBPromotion() const;
+    Bitboard isBPromotion() const;
 
     static Bitboard wKingSafe(Board brd, Bitboard pos);
 
@@ -138,27 +143,66 @@ namespace chs {
               0x24ULL, 0x2400000000000000ULL,
               0x81ULL, 0x8100000000000000ULL,
               0x8ULL, 0x800000000000000ULL,
-              0b00100010ULL, 0b00100010ULL << 48,
+              C1 | G1, C8 | G8,
               0, 1
       };
     }
 
 
     inline static char showPromotionWindow(sf::Font &font) {
+#if SFML_VERSION_MAJOR >= 3
+      sf::RenderWindow promotionWindow(sf::VideoMode(sf::Vector2u(150, 100)), "Pawn Promotion");
+#else
       sf::RenderWindow promotionWindow(sf::VideoMode(150, 100), "Pawn Promotion");
+#endif
 
       // Creating text objects for promotion options
       std::string texts[4] = {"Q - Queen", "R - Rook", "B - Bishop", "N - Knight"};
 
+#if SFML_VERSION_MAJOR >= 3
+      sf::Text text(font, "", 20);
+#else
       sf::Text text("", font, 20);
+#endif
 
-      text.setPosition(20, 5);
+      text.setPosition(sf::Vector2f(20.f, 5.f));
       text.setFillColor(sf::Color::Black);
 
       char chosenPiece = '\0';
 
       while (promotionWindow.isOpen()) {
-        sf::Event event = sf::Event();
+#if SFML_VERSION_MAJOR >= 3
+        while (const auto event = promotionWindow.pollEvent()) {
+          if (event->is<sf::Event::Closed>()) {
+            promotionWindow.close();
+            continue;
+          }
+
+          if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
+            switch (keyEvent->code) {
+              case sf::Keyboard::Key::Q:
+                chosenPiece = 'Q';
+                promotionWindow.close();
+                break;
+              case sf::Keyboard::Key::R:
+                chosenPiece = 'R';
+                promotionWindow.close();
+                break;
+              case sf::Keyboard::Key::B:
+                chosenPiece = 'B';
+                promotionWindow.close();
+                break;
+              case sf::Keyboard::Key::N:
+                chosenPiece = 'N';
+                promotionWindow.close();
+                break;
+              default:
+                break;
+            }
+          }
+        }
+#else
+        sf::Event event;
         while (promotionWindow.pollEvent(event)) {
           if (event.type == sf::Event::Closed)
             promotionWindow.close();
@@ -186,6 +230,7 @@ namespace chs {
             }
           }
         }
+#endif
 
         promotionWindow.clear(sf::Color::White);
         for (int i = 0; i < 4; i++) {

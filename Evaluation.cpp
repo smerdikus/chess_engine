@@ -3,6 +3,8 @@
 //
 #include "Evaluation.h"
 
+#include <bit>
+
 namespace chs {
   int popcount(Bitboard num) {
     return __builtin_popcountll(num);
@@ -64,10 +66,10 @@ namespace chs {
 
     // Exposed king penalty
     kingSafetyScore -= 10 * popcount(oneAround(brd.wKing) & brd.empty());
-    kingSafetyScore += 10 * popcount(oneAround(brd.wKing) & brd.empty());
+    kingSafetyScore += 10 * popcount(oneAround(brd.bKing) & brd.empty());
 
     kingSafetyScore -= CBoard::wKingSafe(brd, brd.wKing) ? 0 : 200;
-    kingSafetyScore += CBoard::bKingSafe(brd, brd.wKing) ? 0 : 200;
+    kingSafetyScore += CBoard::bKingSafe(brd, brd.bKing) ? 0 : 200;
 
     return kingSafetyScore;
   }

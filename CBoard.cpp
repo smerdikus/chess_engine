@@ -4,6 +4,9 @@
 
 #include "CBoard.h"
 
+#include <algorithm>
+#include <climits>
+
 namespace chs {
 
   CBoard::CBoard() {
@@ -25,12 +28,12 @@ namespace chs {
       }
 
       // Assign and scale the textures to sprites
-      m_sprites[i].setTexture(m_textures[i]);
+      m_sprites[i].emplace(m_textures[i]);
       sf::Vector2u textureSize = m_textures[i].getSize();
 
       // Calculate the scale factor to fit within tileSize
       float scaleFactor = static_cast<float>(TILE) / static_cast<float>(std::max(textureSize.x, textureSize.y));
-      m_sprites[i].setScale(scaleFactor, scaleFactor);
+      m_sprites[i]->setScale(sf::Vector2f(scaleFactor, scaleFactor));
     }
 
     lightSquareColor = sf::Color(240, 248, 255);  // Alice blue
@@ -56,7 +59,8 @@ namespace chs {
     // Drawing the board and squares
     for (int y = 0; y < 8; ++y) {
       for (int x = 0; x < 8; ++x) {
-        m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+        m_rectangle.setPosition(sf::Vector2f(static_cast<float>(x * TILE + BORDER),
+                                             static_cast<float>(y * TILE + BORDER)));
         m_rectangle.setFillColor((x + y) % 2 == 0 ? lightSquareColor : darkSquareColor);
         window.draw(m_rectangle);
       }
@@ -68,7 +72,8 @@ namespace chs {
       int x = pos % 8;
       int y = 7 - (pos / 8);
 
-      m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+      m_rectangle.setPosition(sf::Vector2f(static_cast<float>(x * TILE + BORDER),
+                                           static_cast<float>(y * TILE + BORDER)));
       m_rectangle.setFillColor(highlightSrcColor);
       window.draw(m_rectangle);
 
@@ -79,7 +84,8 @@ namespace chs {
           int x = square % 8;
           int y = 7 - (square / 8);
 
-          m_rectangle.setPosition(static_cast<float>(x * TILE + BORDER), static_cast<float>(y * TILE + BORDER));
+          m_rectangle.setPosition(sf::Vector2f(static_cast<float>(x * TILE + BORDER),
+                                               static_cast<float>(y * TILE + BORDER)));
           m_rectangle.setFillColor(highlightDstColor); // Highlight color for possible moves
           window.draw(m_rectangle);
         }
@@ -94,7 +100,8 @@ namespace chs {
           int file = square % 8;
 
           // Here I need to reverse the positions -> 7 - rank
-          sprite.setPosition(static_cast<float>(file) * TILE, static_cast<float>(7 - rank) * TILE);
+          sprite.setPosition(sf::Vector2f(static_cast<float>(file) * TILE,
+                                          static_cast<float>(7 - rank) * TILE));
 
           window.draw(sprite);
         }
@@ -107,27 +114,40 @@ namespace chs {
             m_brd.bPawns, m_brd.bKing, m_brd.bKnights, m_brd.bBishops, m_brd.bQueens, m_brd.bRooks
     };
 
-    for (size_t i = 0; i < 12; ++i)
-      posFromBitboard(m_sprites[i], pieces[i]);
+    for (size_t i = 0; i < 12; ++i) {
+      if (!m_sprites[i]) continue;
+      posFromBitboard(*m_sprites[i], pieces[i]);
+    }
 
 
     // Drawing the rectangle based on who is winning based on the eval function
     sf::RectangleShape winningRect(sf::Vector2f(4 * TILE + evaluate() * m_brd.onTurn / 3, 30));
 
-    winningRect.setPosition(0, 8 * TILE);
+    winningRect.setPosition(sf::Vector2f(0.f, static_cast<float>(8 * TILE)));
     winningRect.setFillColor(sf::Color::White);
 
     window.draw(winningRect);
 
     // Create the text, set its value, font, character size and color
+#if SFML_VERSION_MAJOR >= 3
+    sf::Text text(font, "", 24);
+#else
     sf::Text text;
     text.setFont(font);
-    text.setString(std::to_string(evaluate() * m_brd.onTurn)); // Convert the number to a string
     text.setCharacterSize(24); // in pixels
+#endif
+    text.setString(std::to_string(evaluate() * m_brd.onTurn)); // Convert the number to a string
     text.setFillColor(sf::Color(130, 130, 160, 255));
 
     // Get the local bounds of the text and rectangle, then set the position of the text according to these bounds
-    text.setPosition((WIDTH - text.getLocalBounds().width) / 2, TILE * 8);
+#if SFML_VERSION_MAJOR >= 3
+    const auto textBounds = text.getLocalBounds();
+    text.setPosition(sf::Vector2f((WIDTH - textBounds.size.x) / 2.f,
+                                  static_cast<float>(TILE * 8)));
+#else
+    text.setPosition(sf::Vector2f((WIDTH - text.getLocalBounds().width) / 2.f,
+                                  static_cast<float>(TILE * 8)));
+#endif
 
     // Draw the text
     window.draw(text);
@@ -160,6 +180,10 @@ namespace chs {
         *blackPieces[i] &= ~moveTo;
         pieceType = blackPieceTypes[i];
         removedFrom = moveTo;
+        if (pieceType == 'R') {
+          if (moveTo & A8) m_brd.bCastling &= ~C8;
+          if (moveTo & H8) m_brd.bCastling &= ~G8;
+        }
         break;
       }
     }
@@ -176,6 +200,10 @@ namespace chs {
         *whitePieces[i] &= ~piece;
         pieceType = whitePieceTypes[i];
         removedFrom = piece;
+        if (pieceType == 'R') {
+          if (piece & A1) m_brd.wCastling &= ~C1;
+          if (piece & H1) m_brd.wCastling &= ~G1;
+        }
         break;
       }
     }
@@ -218,19 +246,21 @@ namespace chs {
     Bitboard safeMoves = wKingSafe(m_brd, oneAround(pos)) & m_brd.enemyOrEmpty<true>();
 
     Bitboard path = F1 | G1;
+    Bitboard safe = pos | path;
     Bitboard kingSide = 0;
 
     // King-side castling
-    if (wKingSafe(m_brd, path) && ((m_brd.empty() & path) == path))
-      kingSide = pos >> 2 & m_brd.wCastling;
+    if ((m_brd.wCastling & G1) && (wKingSafe(m_brd, safe) == safe) && ((m_brd.empty() & path) == path))
+      kingSide = pos << 2;
 
 
     path = D1 | C1 | B1;
+    safe = pos | D1 | C1;
     Bitboard queenSide = 0;
 
     // Queen-side castling
-    if (wKingSafe(m_brd, path) && ((m_brd.empty() & path) == path))
-      queenSide = pos << 2 & m_brd.wCastling;
+    if ((m_brd.wCastling & C1) && (wKingSafe(m_brd, safe) == safe) && ((m_brd.empty() & path) == path))
+      queenSide = pos >> 2;
 
 
     return safeMoves | kingSide | queenSide;
@@ -242,19 +272,21 @@ namespace chs {
     Bitboard safeMoves = bKingSafe(m_brd, oneAround(pos)) & m_brd.enemyOrEmpty<false>();
 
     Bitboard path = F8 | G8;
+    Bitboard safe = pos | path;
     Bitboard kingSide = 0;
 
     // King-side castling
-    if (bKingSafe(m_brd, path) && ((m_brd.empty() & path) == path))
-      kingSide = pos >> 2 & m_brd.bCastling;
+    if ((m_brd.bCastling & G8) && (bKingSafe(m_brd, safe) == safe) && ((m_brd.empty() & path) == path))
+      kingSide = pos << 2;
 
 
     path = D8 | C8 | B8;
+    safe = pos | D8 | C8;
     Bitboard queenSide = 0;
 
     // Queen-side castling
-    if (bKingSafe(m_brd, path) && ((m_brd.empty() & path) == path))
-      queenSide = pos << 2 & m_brd.bCastling;
+    if ((m_brd.bCastling & C8) && (bKingSafe(m_brd, safe) == safe) && ((m_brd.empty() & path) == path))
+      queenSide = pos >> 2;
 
 
     return safeMoves | kingSide | queenSide;
@@ -383,8 +415,12 @@ namespace chs {
 
     if (moveTo & m_brd.enPassant) {
       // En-passant capture
-      removeCapturedBlack(m_brd.whiteToMove() ? soutOne(moveTo) : nortOne(moveTo), moveInfo.capturedPiece,
-                          moveInfo.capturedPieceType);
+      moveInfo.wasEnPassant = true;
+      if (m_brd.whiteToMove()) {
+        removeCapturedBlack(soutOne(moveTo), moveInfo.capturedPiece, moveInfo.capturedPieceType);
+      } else {
+        removeCapturedWhite(nortOne(moveTo), moveInfo.capturedPiece, moveInfo.capturedPieceType);
+      }
     } else if (m_brd.whiteToMove() ? (moveTo & nortTwo(moveFrom)) : (moveTo & soutTwo(moveFrom))) {
       // Set en-passant possibility
       m_brd.enPassant = m_brd.whiteToMove() ? nortOne(moveFrom) : soutOne(moveFrom);
@@ -399,8 +435,14 @@ namespace chs {
     if (!(rooks & moveFrom)) return false;
 
     movePiece(rooks, moveFrom, moveTo);
-    // Disable castling rights on the side the rook moved
-    castlingRights &= eastTwo(rooks) | westOne(rooks);
+    // Disable castling rights if the rook moved from its original square
+    if (castlingRights & (C1 | G1)) {
+      if (moveFrom & A1) castlingRights &= ~C1;
+      if (moveFrom & H1) castlingRights &= ~G1;
+    } else if (castlingRights & (C8 | G8)) {
+      if (moveFrom & A8) castlingRights &= ~C8;
+      if (moveFrom & H8) castlingRights &= ~G8;
+    }
 
     return true;
   }
@@ -412,12 +454,14 @@ namespace chs {
     movePiece(king, moveFrom, moveTo);
 
     // Handle castling
-    if (king & castlingRights) {
-      Bitboard rookFrom = (moveTo & (m_brd.whiteToMove() ? (1ULL << 2) : (1ULL << 58))) ? 1ULL :
-                          (m_brd.whiteToMove() ? (1ULL << 7) : (1ULL << 63));
-      Bitboard rookTo = (rookFrom & 1ULL) ? (m_brd.whiteToMove() ? (1ULL << 3) : (1ULL << 59)) :
-                        (m_brd.whiteToMove() ? (1ULL << 5) : (1ULL << 61));
-      movePiece(rooks, rookFrom, rookTo);
+    if (castlingRights & moveTo) {
+      if (m_brd.whiteToMove()) {
+        if (moveTo == G1) movePiece(rooks, H1, F1);
+        if (moveTo == C1) movePiece(rooks, A1, D1);
+      } else {
+        if (moveTo == G8) movePiece(rooks, H8, F8);
+        if (moveTo == C8) movePiece(rooks, A8, D8);
+      }
     }
 
     // Disable castling rights if the king moves
@@ -434,7 +478,7 @@ namespace chs {
 
     // Must store the info before the move
     MoveInfo moveInfo = {moveFrom, moveTo, 0, m_brd.enPassant, m_brd.onTurn == 1 ? m_brd.wCastling : m_brd.bCastling,
-                         m_brd.onTurn, false, 0, 0, nullptr};
+                         m_brd.onTurn, false, 0, false, nullptr};
 
     bool isWhite = m_brd.whiteToMove();
     bool enPassantSet = false;
@@ -461,7 +505,7 @@ namespace chs {
 
       m_brd.onTurn *= -1;
 
-      moveInfo.wasPromotion = isWPromotion();
+      moveInfo.wasPromotion = (isWPromotion() || isBPromotion());
 
       m_moveList.push(moveInfo);
 

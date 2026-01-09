@@ -6,7 +6,11 @@
 using namespace chs;
 
 int main() {
+#if SFML_VERSION_MAJOR >= 3
+  sf::RenderWindow window(sf::VideoMode(sf::Vector2u(WIDTH, HEIGHT)), "CHESS negamax", sf::Style::Close);
+#else
   sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "CHESS negamax", sf::Style::Close);
+#endif
 
   window.setFramerateLimit(60);
 
@@ -41,15 +45,23 @@ int main() {
 
 
   sf::Font font;
+#if SFML_VERSION_MAJOR >= 3
+  if (!font.openFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
+#else
   if (!font.loadFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
+#endif
     std::cout << "Could not load font" << std::endl;
     return 1;
   }
 
 
+#if SFML_VERSION_MAJOR >= 3
+  sf::Text victoryText(font, "", 64);
+#else
   sf::Text victoryText;
   victoryText.setFont(font);
   victoryText.setCharacterSize(64);
+#endif
 
   victoryText.setFillColor(sf::Color::Red);
   victoryText.setStyle(sf::Text::Bold);
@@ -63,7 +75,59 @@ int main() {
     int mouseY = sf::Mouse::getPosition(window).y;
 
 
-    sf::Event event = sf::Event();
+#if SFML_VERSION_MAJOR >= 3
+    while (const auto event = window.pollEvent()) {
+      if (event->is<sf::Event::Closed>()) {
+        window.close();
+        continue;
+      }
+
+      if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
+        if (keyEvent->code == sf::Keyboard::Key::Escape)
+          window.close();
+        if (keyEvent->code == sf::Keyboard::Key::B)
+          brd.unmakeMove();
+        continue;
+      }
+
+      if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
+        if (mouseEvent->button == sf::Mouse::Button::Left) {
+          // Here we need to get the index of the piece we clicked
+          int index = (mouseX / TILE) + ((HEIGHT - 30 - mouseY) / TILE) * 8;
+          std::cout << index << std::endl;
+          Bitboard currentPos = 1ULL << index;
+
+          if (moveFrom == 0) {
+            if (currentPos & brd.onMovePositions())
+              moveFrom = currentPos;
+
+          } else {
+            Bitboard moveTo = currentPos;
+
+            if (moveFrom == currentPos || (currentPos & brd.onMovePositions())) {
+              moveFrom = currentPos;
+              continue;
+            }
+
+            // If the move is in legal moves, provide it, if not just continue
+            if (brd.isMoveLegal(moveFrom, moveTo)) {
+              brd.makeMove(moveFrom, moveTo);
+
+              std::pair<Bitboard, Bitboard> move;
+              if (isEndgame(brd.m_brd))
+                move = brd.negamax(6).second;
+              else
+                move = brd.negamax(3).second;
+              brd.makeMove(move.first, move.second);
+            }
+
+            moveFrom = 0;
+          }
+        }
+      }
+    }
+#else
+    sf::Event event;
     while (window.pollEvent(event)) {
       switch (event.type) {
 
@@ -118,6 +182,7 @@ int main() {
           break;
       }
     }
+#endif
 
 
     if (brd.isWPromotion() | brd.isBPromotion())
@@ -136,8 +201,15 @@ int main() {
       // set the victory string based on the whiteToMove
       victoryText.setString(brd.m_brd.whiteToMove() ? "Black won" : "White won");
 
+#if SFML_VERSION_MAJOR >= 3
+      const auto textRect = victoryText.getLocalBounds();
+      victoryText.setPosition(sf::Vector2f((WIDTH - textRect.size.x) / 2.f,
+                                           (HEIGHT - 100 - textRect.size.y) / 2.f));
+#else
       sf::FloatRect textRect = victoryText.getLocalBounds();
-      victoryText.setPosition(sf::Vector2f((WIDTH - textRect.width) / 2., (HEIGHT - 100 - textRect.height) / 2.));
+      victoryText.setPosition(sf::Vector2f((WIDTH - textRect.width) / 2.f,
+                                           (HEIGHT - 100 - textRect.height) / 2.f));
+#endif
 
       window.draw(victoryText); // draw the victory text
     }

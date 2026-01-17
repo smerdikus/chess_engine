@@ -1,6 +1,6 @@
 # Chess Engine
 
-This is my first attempt to program a chess engine using bitboards and an easy implementation of the negamax AI algorithm. Installation is working only on unix, and is written for zsh.
+This is my first attempt to program a chess engine using bitboards and a negamax-based AI. The codebase is split into an engine library (no SFML dependency) and a UI layer (SFML).
 
 ## Table of Contents
 
@@ -11,7 +11,21 @@ This is my first attempt to program a chess engine using bitboards and an easy i
 
 ## Project Description
 
-This chess engine uses bitboards for efficient board representation and implements the negamax algorithm for AI decision-making. The project is written in C++ and is intended to provide a foundation for further development and experimentation in chess programming.
+This chess engine uses bitboards for efficient board representation, alpha-beta search with move ordering, and a transposition table. The project is written in C++ and is intended to provide a foundation for further development and experimentation in chess programming.
+
+## Repository Structure
+
+```
+include/
+  engine/   # Core engine headers (Board, Evaluation, Zobrist, FEN, move helpers)
+  ui/       # Rendering helpers and UI constants
+src/
+  engine/   # Core engine implementation
+  ui/       # SFML rendering code
+  main.cpp  # Application entrypoint
+tests/
+  perft.cpp # Perft + FEN parsing checks
+```
 
 ## Prerequisites
 
@@ -63,4 +77,13 @@ To run the chess engine executable:
    ./run.sh
    ```
 
-This will start the chess engine and prompt you to enter moves.
+This will start the chess engine UI.
+
+## Tests
+
+Run the perft/FEN checks:
+
+```sh
+cmake --build build
+ctest --test-dir build
+```

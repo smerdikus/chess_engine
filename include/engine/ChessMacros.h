@@ -12,7 +12,7 @@ namespace chs{
 
   typedef uint64_t Bitboard;
 
-  struct Board {
+  struct BoardState {
     Bitboard wKing, bKing;
     Bitboard wPawns, bPawns;
     Bitboard wKnights, bKnights;

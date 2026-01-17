@@ -1,22 +1,19 @@
 //
 // Created by Petr Smerda on 24.02.2025.
 //
-#include "Evaluation.h"
+#include "engine/Evaluation.h"
+#include "engine/Board.h"
 
 #include <bit>
 
 namespace chs {
-  int popcount(Bitboard num) {
-    return __builtin_popcountll(num);
-  }
-
-  bool isEndgame(Board brd, int threshold) {
+  bool isEndgame(BoardState brd, int threshold) {
     // Return the count of not empty squares
     return (popcount(~brd.empty()) <= threshold);
   }
 
 
-  inline int materialEvaluation(Board brd) {
+  inline int materialEvaluation(BoardState brd) {
     int materialScore = 0;
 
     materialScore += popcount(brd.wPawns) * PAWN_VALUE;
@@ -34,7 +31,7 @@ namespace chs {
     return materialScore;
   }
 
-  int positionalEvaluation(Board brd) {
+  int positionalEvaluation(BoardState brd) {
     int positionalScore = 0;
 
     auto applyPositionalScore = [&positionalScore](const uint64_t pieces, const int *table, int adjustment) {
@@ -57,7 +54,7 @@ namespace chs {
   }
 
 
-  int kingSafetyEvaluation(Board brd) {
+  int kingSafetyEvaluation(BoardState brd) {
     int kingSafetyScore = 0;
 
     // Castling bonus
@@ -68,14 +65,14 @@ namespace chs {
     kingSafetyScore -= 10 * popcount(oneAround(brd.wKing) & brd.empty());
     kingSafetyScore += 10 * popcount(oneAround(brd.bKing) & brd.empty());
 
-    kingSafetyScore -= CBoard::wKingSafe(brd, brd.wKing) ? 0 : 200;
-    kingSafetyScore += CBoard::bKingSafe(brd, brd.bKing) ? 0 : 200;
+    kingSafetyScore -= Board::wKingSafe(brd, brd.wKing) ? 0 : 200;
+    kingSafetyScore += Board::bKingSafe(brd, brd.bKing) ? 0 : 200;
 
     return kingSafetyScore;
   }
 
 
-  int pawnStructureEvaluation(Board brd) {
+  int pawnStructureEvaluation(BoardState brd) {
     int pawnStructureScore = 0;
 
     // === ISOLATED PAWNS ===
@@ -125,7 +122,7 @@ namespace chs {
   }
 
 
-  int evaluate(Board brd) {
+  int evaluate(BoardState brd) {
     int score = 0;
 
     // Material evaluation (typically most important)

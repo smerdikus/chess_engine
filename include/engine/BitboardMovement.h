@@ -9,8 +9,8 @@
 #include <bitset>
 #include <stack>
 #include <cstdint>
-#include "ChessMacros.h"
-#include "CBitboardIterator.h"
+#include "engine/ChessMacros.h"
+#include "engine/CBitboardIterator.h"
 
 
 namespace chs {
